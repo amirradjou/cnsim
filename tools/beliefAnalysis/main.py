@@ -36,7 +36,7 @@ def boot_upper(x, stat_func, iterations):
 
 # Parameters
 bootstrap_r = 499
-experiment = "2025.02.11 18.03.24"
+experiment = "2025.05.20 16.04.54"
 
 # Load data
 logging.info(f"Loading data from {experiment}...")

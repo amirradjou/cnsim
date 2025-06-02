@@ -298,8 +298,26 @@ public abstract class Node implements INode {
 	    ArrayList<INode> ns_list = nodes.getNodes();
 	    for (INode n : ns_list) {
 	        if (!n.equals(this)){
-	            long inter = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), txc.getSize());
-	            Event_ContainerArrival e = new Event_ContainerArrival(txc, n, time + inter);
+	            // Get network propagation time
+	            long networkDelay = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), txc.getSize());
+	            
+	            // Calculate processing delay based on block size
+	            float processingDelayPerByte = Config.getPropertyFloat("bitcoin.blockProcessingDelayPerByte");
+	            long processingDelay = Math.round(txc.getSize() * processingDelayPerByte);
+	            
+	            // Total delay is network delay + processing delay
+	            long totalDelay = networkDelay + processingDelay;
+	            
+	            if (totalDelay < 0) {
+	                String error = "Error in 'propagateContainer' Negative interval between " + this.getID() + 
+	                    " and " + n.getID() + " for size " + txc.getSize() + " of container " + txc.getID() + 
+	                    " interval is " + totalDelay;
+	                Reporter.addErrorEntry(error);
+	                System.err.println(error);
+	                assert(totalDelay > 0);
+	            }
+	            
+	            Event_ContainerArrival e = new Event_ContainerArrival(txc, n, time + totalDelay);
 	            sim.schedule(e);
 	        }
 	    }
@@ -317,18 +335,26 @@ public abstract class Node implements INode {
 	    ArrayList<INode> ns_list = nodes.getNodes();
 	    for (INode n : ns_list) {
 	        if (!n.equals(this)){
-	            long inter = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), t.getSize());
-	            if (inter<0) {
-	            	String error = "Error in 'propagateTransaction' Negative interval between " + this.getID() + " and " + n.getID() + " for size " + t.getSize() + " of transaction " + t.getID() +  " interval is " + inter;
-	            	Reporter.addErrorEntry(error);
-	            	System.err.println(error);
-	            	assert(inter > 0);
-	            }
-
-	            //TODO: do something more elaborate perhaps
-	            inter+= Config.getPropertyInt("net.propagationTime");
+	            // Get network propagation time
+	            long networkDelay = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), t.getSize());
 	            
-	            Event_TransactionPropagation e = new Event_TransactionPropagation(t, n, time + inter);
+	            // Calculate processing delay based on transaction size
+	            float processingDelayPerByte = Config.getPropertyFloat("bitcoin.txProcessingDelayPerByte");
+	            long processingDelay = Math.round(t.getSize() * processingDelayPerByte);
+	            
+	            // Total delay is network delay + processing delay
+	            long totalDelay = networkDelay + processingDelay;
+	            
+	            if (totalDelay < 0) {
+	                String error = "Error in 'propagateTransaction' Negative interval between " + this.getID() + 
+	                    " and " + n.getID() + " for size " + t.getSize() + " of transaction " + t.getID() + 
+	                    " interval is " + totalDelay;
+	                Reporter.addErrorEntry(error);
+	                System.err.println(error);
+	                assert(totalDelay > 0);
+	            }
+	            
+	            Event_TransactionPropagation e = new Event_TransactionPropagation(t, n, time + totalDelay);
 	            sim.schedule(e);
 	        }
 	    }

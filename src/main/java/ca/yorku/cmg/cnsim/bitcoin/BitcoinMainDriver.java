@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.List;
-import java.util.Scanner;
 
 import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.ConfigException;
@@ -19,7 +17,6 @@ import ca.yorku.cmg.cnsim.engine.Sampler;
 import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.TransactionSamplerFactory;
 import ca.yorku.cmg.cnsim.engine.consensus.ConsensusSetup;
-import ca.yorku.cmg.cnsim.engine.event.Event_NewTransactionArrival;
 import ca.yorku.cmg.cnsim.engine.network.AbstractNetwork;
 import ca.yorku.cmg.cnsim.engine.network.NetworkFactory;
 import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
@@ -36,7 +33,6 @@ import ca.yorku.cmg.cnsim.engine.transaction.TransactionWorkload;
 public class BitcoinMainDriver {
 
     public static void main(String[] args) {
-        //run simulation with the given configuration for n times
         try {
             new BitcoinMainDriver().run(args);
         } catch (ConfigException e) {
@@ -153,12 +149,11 @@ public class BitcoinMainDriver {
         // Creating Sampler
         //
         //
-    	//System.out.println("    Creating and setting Sampler container for Sim #" + simID);
         Sampler sampler = new Sampler();
 
         //
         //
-        // Set Sampler
+        // Set Sampler to Simulation object
         //
         //
         s.setSampler(sampler);
@@ -166,7 +161,6 @@ public class BitcoinMainDriver {
 
         //Develop sampler 1: Node Sampler
         //
-    	//System.out.println("    Creating and setting Node Sampler for Sim #" + simID);
         try {
             sampler.setNodeSampler(new NodeSamplerFactory().getSampler(
                     Config.getPropertyString("node.sampler.file"),
@@ -184,7 +178,6 @@ public class BitcoinMainDriver {
 
         //Develop sampler 2: Network Sampler
         //
-        //System.out.println("    Creating and setting NetworkSampler for Sim #" + simID);
         sampler.setNetworkSampler(new NetworkSamplerFactory().
         		getNetworkSampler(
         				(Config.hasProperty("net.sampler.seed") ? Config.getPropertyLong("net.sampler.seed") : null),
@@ -195,7 +188,6 @@ public class BitcoinMainDriver {
 
         //Develop sampler 3: Transaction Sampler
         //
-        //System.out.println("    Creating and setting Transaction Sampler for Sim #" + simID);
         try {
             sampler.setTransactionSampler(
                     new TransactionSamplerFactory().getSampler(
@@ -223,7 +215,6 @@ public class BitcoinMainDriver {
         // Creating the nodes
         //
         //
-        //System.out.println("    Creating and adding Nodes for Sim #" + simID);
         AbstractNodeFactory nf = new BitcoinNodeFactory("Honest", s);
         NodeSet ns = new NodeSet(nf);
 
@@ -278,7 +269,6 @@ public class BitcoinMainDriver {
         }
 
         s.setNetwork(net);
-        //n.printNetwork();
 
         //
         //
@@ -287,7 +277,6 @@ public class BitcoinMainDriver {
         //
 
         // Transaction workload
-        //System.out.println("    Creating and Scheduling Workload for Sim #" + simID);
         TransactionWorkload ts = new TransactionWorkload(sampler);
         try {
             // Optionally pre-seed every node's mining pool with transactions that

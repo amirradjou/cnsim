@@ -74,9 +74,16 @@ public class BitcoinNodeFactory extends AbstractNodeFactory {
 				node.setHashPower((float) nodeHashPower);
 			}
 			
-			//Set target transaction
-			int targetTx[] = Config.parseStringToIntArray(Config.getPropertyString("workload.sampleTransaction"));
-			((MaliciousNodeBehavior) strategy).setTargetTransaction(targetTx[0]);
+			//Set target transaction: workload.targetTransaction if given (and non-zero),
+			//otherwise fall back to the first entry of workload.sampleTransaction.
+			int targetTxID = Config.hasProperty("workload.targetTransaction")
+					? Config.getPropertyInt("workload.targetTransaction") : 0;
+			if (targetTxID == 0) {
+				int targetTx[] = Config.parseStringToIntArray(Config.getPropertyString("workload.sampleTransaction"));
+				targetTxID = targetTx[0];
+			}
+			System.out.println("    Malicious node " + node.getID() + " target transaction: " + targetTxID);
+			((MaliciousNodeBehavior) strategy).setTargetTransaction(targetTxID);
 			
 		} else {
 			strategy = new HonestNodeBehavior(node);

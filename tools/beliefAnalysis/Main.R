@@ -13,9 +13,9 @@ boot.upper <- function(x,y,Iter){
 }
 
 Bootstrap_R = 499
-experiment = "2025.05.20 15.57.07"
+experiment = "2025.06.19 03.13.19"
 
-data <- read_csv(paste0("../../log/",experiment,"/BeliefLog - ",experiment,".csv"))
+data <- read_csv(paste0("../../new-thesis-log/malicious3/",experiment,"/BeliefLog - ",experiment,".csv"))
 data <- data %>% rename(Simulation = SimID, Transaction = `Transaction ID`,Time = `Time (ms from start)`)
 net_pre = data %>% group_by(Simulation,Transaction,Time) %>% summarise(conf = mean(Believes))
 endTime = min(net_pre %>% group_by(Simulation) %>% summarise(maxTime = max(Time)) %>% pull(maxTime))

@@ -11,11 +11,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Parameters
 bootstrap_r = 499
-experiment = "2025.05.24 12.52.37"
+experiment = "2025.06.19 03.13.19"
 
 # Load data
 logging.info(f"Loading data from {experiment}...")
-data_path = f"../../thesis-log/double-minSizeToMine/{experiment}/BeliefLog - {experiment}.csv"
+data_path = f"../../new-thesis-log/malicious3/{experiment}/BeliefLog - {experiment}.csv"
 data = pd.read_csv(data_path)
 data.columns = data.columns.str.strip()
 logging.info("Data loaded successfully.")
@@ -118,7 +118,7 @@ plt.xlabel("Time (min)")
 plt.ylabel("Confidence")
 plt.title("Confidence in f over time")
 plt.axhline(y=0.8, color="r", linestyle="--")
-#plt.xlim(20, 160)
+plt.xlim(60, 200)
 plt.savefig("confidence_over_time.png")
 plt.close()
 logging.info("Saved confidence_over_time.png")

@@ -36,11 +36,11 @@ def boot_upper(x, stat_func, iterations):
 
 # Parameters
 bootstrap_r = 499
-experiment = "2025.05.20 16.04.54"
+experiment = "2025.06.19 03.13.19"
 
 # Load data
 logging.info(f"Loading data from {experiment}...")
-data_path = f"../../log/{experiment}/BeliefLog - {experiment}.csv"
+data_path = f"../../new-thesis-log/malicious3/{experiment}/BeliefLog - {experiment}.csv"
 data = pd.read_csv(data_path)
 data.columns = data.columns.str.strip()
 logging.info("Data loaded successfully.")

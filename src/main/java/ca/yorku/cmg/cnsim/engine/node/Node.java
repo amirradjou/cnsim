@@ -42,6 +42,14 @@ public abstract class Node implements INode {
 	
 	private boolean isMining = false;
 	
+	/** Config keys for the per-byte processing delays added on top of the network delay. */
+	public static final String BLOCK_PROCESSING_DELAY_KEY = "bitcoin.blockProcessingDelayPerByte";
+	public static final String TX_PROCESSING_DELAY_KEY = "bitcoin.txProcessingDelayPerByte";
+	
+	/** Processing delay in milliseconds per byte of a propagated container (block). 0 if not configured. */
+	private final float blockProcessingDelayPerByte;
+	/** Processing delay in milliseconds per byte of a propagated transaction. 0 if not configured. */
+	private final float txProcessingDelayPerByte;
 
 	
 	// 
@@ -53,6 +61,25 @@ public abstract class Node implements INode {
         pool = new TransactionGroup();
         //setNetwork(sim.getNetwork());
         ID = getNextNodeID();
+        // Read once here rather than in the per-peer propagation loops: the keys are
+        // optional (default 0, i.e. no processing delay) so that configs written before
+        // the delays were introduced keep running.
+        blockProcessingDelayPerByte = Config.getPropertyFloat(BLOCK_PROCESSING_DELAY_KEY, 0f);
+        txProcessingDelayPerByte = Config.getPropertyFloat(TX_PROCESSING_DELAY_KEY, 0f);
+	}
+
+	/**
+	 * @return The processing delay (ms per byte) applied to every propagated container.
+	 */
+	public float getBlockProcessingDelayPerByte() {
+		return blockProcessingDelayPerByte;
+	}
+
+	/**
+	 * @return The processing delay (ms per byte) applied to every propagated transaction.
+	 */
+	public float getTxProcessingDelayPerByte() {
+		return txProcessingDelayPerByte;
 	}
 
 	
@@ -302,8 +329,7 @@ public abstract class Node implements INode {
 	            long networkDelay = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), txc.getSize());
 	            
 	            // Calculate processing delay based on block size
-	            float processingDelayPerByte = Config.getPropertyFloat("bitcoin.blockProcessingDelayPerByte");
-	            long processingDelay = Math.round(txc.getSize() * processingDelayPerByte);
+	            long processingDelay = Math.round(txc.getSize() * blockProcessingDelayPerByte);
 	            
 	            // Total delay is network delay + processing delay
 	            long totalDelay = networkDelay + processingDelay;
@@ -339,8 +365,7 @@ public abstract class Node implements INode {
 	            long networkDelay = sim.getNetwork().getPropagationTime(this.getID(), n.getID(), t.getSize());
 	            
 	            // Calculate processing delay based on transaction size
-	            float processingDelayPerByte = Config.getPropertyFloat("bitcoin.txProcessingDelayPerByte");
-	            long processingDelay = Math.round(t.getSize() * processingDelayPerByte);
+	            long processingDelay = Math.round(t.getSize() * txProcessingDelayPerByte);
 	            
 	            // Total delay is network delay + processing delay
 	            long totalDelay = networkDelay + processingDelay;

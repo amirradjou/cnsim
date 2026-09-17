@@ -83,6 +83,21 @@ public class Config {
         return l;
      }
     
+    /**
+     * Returns the float value of an optional property, or {@code defaultValue}
+     * when the property is not defined. A defined but malformed value is still
+     * a fatal configuration error, like every other typed getter.
+     * @param propertyKey The property name.
+     * @param defaultValue The value to use when the key is absent.
+     * @return The parsed value or the default.
+     */
+    public static float getPropertyFloat(String propertyKey, float defaultValue) {
+    	if (!hasProperty(propertyKey)) {
+    		return defaultValue;
+    	}
+    	return getPropertyFloat(propertyKey);
+    }
+
     public static Float getPropertyFloat(String propertyKey) {
     	float l = -1.0f; 
     	check(propertyKey);

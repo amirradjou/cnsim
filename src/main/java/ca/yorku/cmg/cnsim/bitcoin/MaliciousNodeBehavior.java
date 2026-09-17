@@ -17,6 +17,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
 	private int targetTxID;
 	
     private boolean isAttackInProgress = false;
+    private boolean isAttackCompleted = false; // New flag to track if attack has been completed
     private BitcoinNode node;
     private HonestNodeBehavior honestBehavior;
     private int blockchainSizeAtAttackStart;
@@ -39,12 +40,40 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
 
     @Override
     public void event_NodeReceivesClientTransaction(Transaction t, long time) {
-        honestBehavior.event_NodeReceivesClientTransaction(t, time);
+        // If attack is completed and this is the target transaction, don't add it to the pool
+        if (isAttackCompleted && t.getID() == targetTxID) {
+            Debug.p("Target transaction " + targetTxID + " received after attack completion - ignoring");
+            return;
+        }
+        if (!isAttackInProgress) {
+            honestBehavior.event_NodeReceivesClientTransaction(t, time);
+        } else {
+            // During attack, always filter target transaction
+            if (t.getID() != targetTxID) {
+                honestBehavior.event_NodeReceivesClientTransaction(t, time);
+            }
+            filterTargetTransactionFromPools();
+        }
+        persistentFilterTargetTransaction();
     }
 
     @Override
     public void event_NodeReceivesPropagatedTransaction(Transaction t, long time) {
-        honestBehavior.event_NodeReceivesPropagatedTransaction(t, time);
+        // If attack is completed and this is the target transaction, don't add it to the pool
+        if (isAttackCompleted && t.getID() == targetTxID) {
+            Debug.p("Target transaction " + targetTxID + " received via propagation after attack completion - ignoring");
+            return;
+        }
+        if (!isAttackInProgress) {
+            honestBehavior.event_NodeReceivesPropagatedTransaction(t, time);
+        } else {
+            // During attack, always filter target transaction
+            if (t.getID() != targetTxID) {
+                honestBehavior.event_NodeReceivesPropagatedTransaction(t, time);
+            }
+            filterTargetTransactionFromPools();
+        }
+        persistentFilterTargetTransaction();
     }
 
     private void startAttack(Block b) {
@@ -96,6 +125,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                 //reportBlockEvent(b, b.getContext().blockEvt);
                 handleNewBlockReceptionInAttack(b);
                 startAttack(b);
+                filterTargetTransactionFromPools();
             } else { //Does not contain target transaction
                 BitcoinReporter.reportBlockEvent(
 						Simulation.currentSimulationID,
@@ -131,11 +161,24 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                 //reportBlockEvent(b, "Propagated Block Discarded");
             }
             checkAndRevealHiddenChain(b);
+            // If public chain growth reached threshold and hidden chain is not longer, abandon attack
+            if (shouldAbandonAttack()) {
+                isAttackInProgress = false;
+                hiddenChain.clear();
+                Debug.p("Attack abandoned: public chain growth threshold reached and hidden chain not longer.");
+            }
         }
         else { //attack not in progress
             if (!node.blockchain.contains(b)) {
                 //reportBlockEvent(b, b.getContext().blockEvt);
                 honestBehavior.handleNewBlockReception(b);
+                
+                // If attack is completed, ensure target transaction is removed from pools after block processing
+                if (isAttackCompleted && b.contains(targetTxID)) {
+                    node.removeFromPool(targetTxID);
+                    node.miningPool.removeTransaction(targetTxID);
+                }
+                ensureTargetTransactionExcluded();
             } else {
             	//reportBlockEvent(b, "Propagated Block Discarded");
                 BitcoinReporter.reportBlockEvent(
@@ -159,7 +202,13 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
     @Override
     public void event_NodeCompletesValidation(ITxContainer t, long time) {
         if (isAttackInProgress) {
+            // During attack, always filter target transaction before mining
+            filterTargetTransactionFromPools();
             Block newBlock = (Block) t;
+            // Do not add the target transaction to the block
+            if (newBlock.contains(targetTxID)) {
+                newBlock.removeTransaction(targetTxID);
+            }
             newBlock.validateBlock(node.miningPool,
             		Simulation.currTime, 
             		System.currentTimeMillis()- Simulation.sysStartTime, 
@@ -215,6 +264,12 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
             }
             manageMiningPostValidation();
             checkAndRevealHiddenChain(newBlock);
+            // If public chain growth reached threshold and hidden chain is not longer, abandon attack
+            if (shouldAbandonAttack()) {
+                isAttackInProgress = false;
+                hiddenChain.clear();
+                Debug.p("Attack abandoned: public chain growth threshold reached and hidden chain not longer.");
+            }
         } else { //Attack not in progress
             Block b = (Block) t;
             b.validateBlock(node.miningPool,
@@ -254,6 +309,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                     node.reconstructMiningPool();
                     node.miningPool.removeTransaction(targetTxID);
                     node.considerMining(Simulation.currTime);
+                    filterTargetTransactionFromPools();
                 } else {
                     BitcoinReporter.reportBlockEvent(
     						Simulation.currentSimulationID,
@@ -326,8 +382,10 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
             node.propagateContainer(b, Simulation.currTime);
         }
         isAttackInProgress = false;
+        isAttackCompleted = true; // Mark attack as completed
         hiddenChain = new ArrayList<Block>();
-        node.removeFromPool(targetTxID);
+        reconstructMiningPoolFiltered();
+        
         Debug.p("Chain reveal! at time " + Simulation.currTime);
     }
 
@@ -363,12 +421,18 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
 
     
     
+    private void ensureTargetTransactionExcluded() {
+        if (isAttackCompleted) {
+            node.removeFromPool(targetTxID);
+            node.miningPool.removeTransaction(targetTxID);
+        }
+    }
+
     private void manageMiningPostValidation() {
         node.stopMining();
         node.resetNextValidationEvent();
         node.removeFromPool(node.miningPool);
-        node.reconstructMiningPool();
-        node.miningPool.removeTransaction(targetTxID);
+        reconstructMiningPoolFiltered();
         node.considerMining(Simulation.currTime);
     }
 
@@ -383,8 +447,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
 
     private void handleNewBlockReceptionInAttack(Block b) {
         node.blockchain.addToStructure(b);
-        node.reconstructMiningPool();
-        node.miningPool.removeTransaction(targetTxID);
+        reconstructMiningPoolFiltered();
         node.considerMining(Simulation.currTime);
     }
 
@@ -409,6 +472,42 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                     b.getValidationCycles());
             revealHiddenChain();
         }
+    }
+
+    /**
+     * Ensures the target transaction is removed from both the mining pool and the transaction pool if the attack is completed.
+     */
+    private void persistentFilterTargetTransaction() {
+        if (isAttackCompleted) {
+            node.getPool().removeTransaction(targetTxID);
+            node.miningPool.removeTransaction(targetTxID);
+        }
+    }
+
+    /**
+     * Reconstructs the mining pool, ensuring the target transaction is filtered from both the pool and mining pool if the attack is completed.
+     */
+    private void reconstructMiningPoolFiltered() {
+        persistentFilterTargetTransaction(); // Remove from pool before reconstruction
+        node.reconstructMiningPool();
+        persistentFilterTargetTransaction(); // Remove from mining pool after reconstruction
+    }
+
+    // Helper: Check if the target transaction is in the public chain
+    private boolean isTargetTxInPublicChain() {
+        return node.blockchain.transactionInStructure(targetTxID);
+    }
+
+    // Helper: Remove the target transaction from both pools
+    private void filterTargetTransactionFromPools() {
+        node.getPool().removeTransaction(targetTxID);
+        node.miningPool.removeTransaction(targetTxID);
+    }
+
+    // Helper: Should the attack be abandoned?
+    private boolean shouldAbandonAttack() {
+        // If public chain growth reached threshold and hidden chain is not longer, abandon
+        return (publicChainGrowthSinceAttack >= MAX_CHAIN_LENGTH && hiddenChain.size() <= publicChainGrowthSinceAttack);
     }
 }
 

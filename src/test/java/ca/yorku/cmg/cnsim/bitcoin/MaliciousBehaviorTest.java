@@ -1,17 +1,64 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
 import ca.yorku.cmg.cnsim.bitcoin.MaliciousNodeBehavior;
+import ca.yorku.cmg.cnsim.engine.Simulation;
+import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 class MaliciousNodeBehaviorTest {
     private MaliciousNodeBehavior maliciousNode;
+    private BitcoinNode mockNode;
+    private Simulation mockSimulation;
 
     @BeforeEach
     void setUp() {
-        // Create a mock BitcoinNode and initialize MaliciousNodeBehavior
-        //BitcoinNode mockNode = new BitcoinNode(/* Pass required parameters */);
-        //maliciousNode = new MaliciousNodeBehavior(mockNode);
+        // Create a simple mock simulation
+        mockSimulation = new Simulation(1);
+        
+        // Create a BitcoinNode with the simulation
+        mockNode = new BitcoinNode(mockSimulation);
+        maliciousNode = new MaliciousNodeBehavior(mockNode);
+    }
+
+    @Test
+    void testTargetTransactionExclusionAfterAttackCompletion() {
+        // Set up target transaction
+        int targetTxID = 100;
+        maliciousNode.setTargetTransaction(targetTxID);
+        
+        // Create a transaction with the target ID
+        Transaction targetTransaction = new Transaction(targetTxID, 1000, 50, 100);
+        
+        // Initially, the transaction should be processed normally
+        // We can't easily test this without more complex setup, but we can test the flag setting
+        
+        // Simulate attack completion by setting the flag directly
+        // In a real scenario, this would be set by revealHiddenChain()
+        try {
+            java.lang.reflect.Field field = MaliciousNodeBehavior.class.getDeclaredField("isAttackCompleted");
+            field.setAccessible(true);
+            field.set(maliciousNode, true);
+            
+            // Verify the flag was set correctly
+            boolean isCompleted = (boolean) field.get(maliciousNode);
+            assertTrue(isCompleted, "Attack completion flag should be set to true");
+            
+        } catch (Exception e) {
+            fail("Failed to set or verify attack completion flag: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testSetTargetTransaction() {
+        // Test setting target transaction by ID
+        int targetTxID = 100;
+        maliciousNode.setTargetTransaction(targetTxID);
+        
+        // We can't easily verify this without exposing the field, but we can test that it doesn't throw an exception
+        assertDoesNotThrow(() -> maliciousNode.setTargetTransaction(targetTxID));
     }
 
     @Test

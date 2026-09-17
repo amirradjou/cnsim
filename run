@@ -1,2 +1,15 @@
 #!/bin/bash
-java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c src/main/resources/bitcoin-config/bitcoin.lowrate2.application.properties
+# Runs the packaged simulator with a config file (default: bitcoin.lowrate2).
+# Build the jar first with ./comp (or ./do, which builds and then runs this).
+# JAVA_HOME must point at a working JDK 21 or newer.
+cfg="${1:-src/main/resources/bitcoin-config/bitcoin.lowrate2.application.properties}"
+jar=target/cnsim-0.0.1-SNAPSHOT.jar
+if [ ! -f "$jar" ]; then
+    echo "run: $jar not found; build it with ./comp first" >&2
+    exit 1
+fi
+if [ ! -f "$cfg" ]; then
+    echo "run: config file '$cfg' not found" >&2
+    exit 1
+fi
+exec java -jar "$jar" -c "$cfg"

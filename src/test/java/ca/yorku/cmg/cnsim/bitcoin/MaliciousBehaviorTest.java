@@ -32,23 +32,26 @@ class MaliciousNodeBehaviorTest {
         // Create a transaction with the target ID
         Transaction targetTransaction = new Transaction(targetTxID, 1000, 50, 100);
         
-        // Initially, the transaction should be processed normally
-        // We can't easily test this without more complex setup, but we can test the flag setting
-        
         // Simulate attack completion by setting the flag directly
-        // In a real scenario, this would be set by revealHiddenChain()
+        // (in a real run revealHiddenChain() sets it).
         try {
             java.lang.reflect.Field field = MaliciousNodeBehavior.class.getDeclaredField("isAttackCompleted");
             field.setAccessible(true);
             field.set(maliciousNode, true);
-            
-            // Verify the flag was set correctly
-            boolean isCompleted = (boolean) field.get(maliciousNode);
-            assertTrue(isCompleted, "Attack completion flag should be set to true");
-            
         } catch (Exception e) {
-            fail("Failed to set or verify attack completion flag: " + e.getMessage());
+            fail("Failed to set attack completion flag: " + e.getMessage());
         }
+
+        // After the attack the target must be dropped on receipt, whether it
+        // arrives from a client or via propagation: neither call may reach the
+        // honest path (which would need a network) nor touch the pool.
+        maliciousNode.event_NodeReceivesClientTransaction(targetTransaction, 1000);
+        maliciousNode.event_NodeReceivesPropagatedTransaction(targetTransaction, 2000);
+
+        assertFalse(mockNode.getPool().contains(targetTransaction),
+                "Target transaction must not enter the pool after attack completion");
+        assertEquals(0, mockNode.getPool().getCount(),
+                "Pool must stay empty after the target is ignored");
     }
 
     @Test

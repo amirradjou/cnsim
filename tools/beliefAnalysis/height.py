@@ -1,8 +1,9 @@
 import pandas as pd
 
 # Load Data
-experiment = "2025.05.24 13.11.17"
-file_path = f"../../thesis-log/double-minSizeToMine/{experiment}/StructureLog - {experiment}.csv"
+experiment = "2025.06.10 12.52.41"
+folder = "malicious3"
+file_path = f"../../thesis-log/{folder}/{experiment}/StructureLog - {experiment}.csv"
 
 # Read CSV
 data = pd.read_csv(file_path)
@@ -26,7 +27,7 @@ print(f"Mean of max heights across all SimIDs: {mean_max_height}")
 print(f"Standard deviation of max heights across all SimIDs: {std_max_height}")
 
 # Save to CSV
-output_path = f"../../thesis-log/double-minSizeToMine/{experiment}/MaxHeights_{experiment}.csv"
+output_path = f"../../thesis-log/{folder}/{experiment}/MaxHeights_{experiment}.csv"
 max_heights.to_csv(output_path, index=False)
 
 print(f"Results saved to {output_path}")

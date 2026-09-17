@@ -8,8 +8,8 @@ CONFIDENCE_THRESHOLDS = [0.6, 0.8, 1.0]  # Multiple finality thresholds
 BOOTSTRAP_R = 499            # Bootstrap iterations if needed
 
 # Load Data
-experiment = "2025.05.20 17.01.36"
-file_path = f"../../log/{experiment}/BeliefLog - {experiment}.csv"
+experiment = "2025.06.05 17.26.16"
+file_path = f"../../thesis-log/base/{experiment}/BeliefLog - {experiment}.csv"
 
 # Read CSV
 data = pd.read_csv(file_path)
@@ -118,19 +118,19 @@ finality_ratio_by_sim = (
 )
 
 # Save data frames to CSV if needed
-output_path = f"../../log/{experiment}/FinalityScores_{experiment}.csv"
+output_path = f"../../thesis-log/base/{experiment}/FinalityScores_{experiment}.csv"
 finality_results.to_csv(output_path, index=False)
 
-summary_output_path = f"../../log/{experiment}/FinalitySummary_{experiment}.csv"
+summary_output_path = f"../../thesis-log/base/{experiment}/FinalitySummary_{experiment}.csv"
 summary_stats.to_csv(summary_output_path, index=False)
 
-ratio_output_path = f"../../log/{experiment}/FinalityRatio_{experiment}.csv"
+ratio_output_path = f"../../thesis-log/base/{experiment}/FinalityRatio_{experiment}.csv"
 finality_ratio.to_csv(ratio_output_path, index=False)
 
-ratio_by_tx_output_path = f"../../log/{experiment}/FinalityRatioByTx_{experiment}.csv"
+ratio_by_tx_output_path = f"../../thesis-log/base/{experiment}/FinalityRatioByTx_{experiment}.csv"
 finality_ratio_by_tx.to_csv(ratio_by_tx_output_path, index=False)
 
-ratio_by_sim_output_path = f"../../log/{experiment}/FinalityRatioBySim_{experiment}.csv"
+ratio_by_sim_output_path = f"../../thesis-log/base/{experiment}/FinalityRatioBySim_{experiment}.csv"
 finality_ratio_by_sim.to_csv(ratio_by_sim_output_path, index=False)
 
 # Print results

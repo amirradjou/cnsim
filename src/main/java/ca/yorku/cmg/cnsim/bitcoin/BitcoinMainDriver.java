@@ -18,6 +18,7 @@ import ca.yorku.cmg.cnsim.engine.network.AbstractNetwork;
 import ca.yorku.cmg.cnsim.engine.network.FileBasedEndToEndNetwork;
 import ca.yorku.cmg.cnsim.engine.network.RandomEndToEndNetwork;
 import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
+import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.Node;
 import ca.yorku.cmg.cnsim.engine.node.NodeSet;
 import ca.yorku.cmg.cnsim.engine.reporter.ReportEventFactory;
@@ -168,7 +169,7 @@ public class BitcoinMainDriver {
         //System.out.println("    Creating and adding Nodes for Sim #" + simID);
         AbstractNodeFactory nf = new BitcoinNodeFactory("Honest", s);
         NodeSet ns = new NodeSet(nf);
-        
+
         ns.addNodes(Config.getPropertyInt("net.numOfHonestNodes"));
         ns.setNodeFactory(new BitcoinNodeFactory("Malicious", s, ns));
         ns.addNodes(Config.getPropertyInt("net.numOfMaliciousNodes"));
@@ -214,6 +215,38 @@ public class BitcoinMainDriver {
         //System.out.println("    Creating and Scheduling Workload for Sim #" + simID);
         TransactionWorkload ts = new TransactionWorkload(sampler);
         try {
+            // Optionally pre-seed every node's mining pool with transactions that
+            // exist before the workload starts (sim.initialMiningPoolTransactions,
+            // default 0 = no pre-seeding, which is what every thesis run used).
+            int initialPoolSize = Config.hasProperty("sim.initialMiningPoolTransactions")
+                    ? Config.getPropertyInt("sim.initialMiningPoolTransactions") : 0;
+            if (initialPoolSize > 0) {
+                System.out.println("    Initializing mining pool with " + initialPoolSize + " transactions");
+            }
+            
+            // Create and add initial transactions to each node's mining pool
+            for (int i = 0; i < initialPoolSize; i++) {
+                // Create a new transaction using the sampler
+                long size = sampler.getTransactionSampler().getNextTransactionSize();
+                float fee = sampler.getTransactionSampler().getNextTransactionFeeValue();
+                Transaction tx = new Transaction(
+                    Transaction.getNextTxID(),
+                    Simulation.currTime,
+                    fee,
+                    size
+                );
+                
+                // Add transaction to each node's pool
+                for (INode node : ns.getNodes()) {
+                    if (node instanceof BitcoinNode) {
+                        BitcoinNode bNode = (BitcoinNode) node;
+                        bNode.addTransactionToPool(tx);
+                        bNode.reconstructMiningPool();
+                    }
+                }
+            }
+            
+            // Add remaining transactions to workload
             ts.appendTransactions(Config.getPropertyLong("workload.numTransactions"));
         } catch (Exception e) {
             e.printStackTrace();

@@ -3,7 +3,26 @@ target/
 .idea/
 .classpath
 .project
+.settings/
 *.iml
 *.log
 /bin/
+
+# R / RStudio session files
 .Rproj.user
+.Rhistory
+.RData
+.Rdata
+.Ruserdata
+
+# Generated documentation (rebuilt with mvn javadoc:javadoc / quarto render)
+docs/apidocs/
+src/site/full-documentation/Units.html
+
+# Simulation output directories written by the shipped configs
+/log/
+/thesis-log/
+/new-thesis-log/
+/new-thesis-log2/
+/new-thesis-log-newer/
+/out/

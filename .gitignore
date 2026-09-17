@@ -26,3 +26,15 @@ src/site/full-documentation/Units.html
 /new-thesis-log2/
 /new-thesis-log-newer/
 /out/
+
+# Simulator output logs wherever a run drops them (each run writes "<Log> - <run id>.csv")
+BeliefLog - *.csv
+BlockLog - *.csv
+StructureLog - *.csv
+EventLog - *.csv
+NetLog - *.csv
+Nodes - *.csv
+Input - *.csv
+Config - *.csv
+ErrorLog - *.txt
+*LatestFileName.txt

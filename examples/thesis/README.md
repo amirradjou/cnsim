@@ -14,7 +14,7 @@ are **not** in git; see "Run logs" at the end.
 
 ```sh
 export JAVA_HOME=/path/to/jdk-21-or-newer   # the ./comp, ./do, ./run wrappers assume this is set
-mvn -B package                               # 88 tests, produces target/cnsim-0.0.1-SNAPSHOT.jar
+mvn -B package                               # 101 tests at this tag (86 on the pre-artifact master), produces target/cnsim-0.0.1-SNAPSHOT.jar
 java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c src/main/resources/new-config/thesis.bitcoin.base.properties
 ```
 
@@ -30,12 +30,43 @@ a few hours and produces roughly 2 GB.
 
 | Directory | Sims | Output dir | Nodelist | Used for |
 |---|---|---|---|---|
-| `src/main/resources/bitcoin-config/thesis.bitcoin.*.properties` | 10 | `./thesis-log/<scenario>/` | `src/main/resources/nodelist*.csv` | June 2025 pilot runs; the attacker fractions quoted in the thesis text (16.61 / 29.28 / 64.73 %) come from these nodelists |
+| `src/main/resources/bitcoin-config/thesis.bitcoin.*.properties` | 10 | `./thesis-log/<scenario>/` | `src/main/resources/nodelist*.csv` | June 2025 pilot runs; the attacker fractions quoted in the thesis text (16.61 / 29.28 / 64.73 %) are those of this set's malicious configs (see "Where the attacker fraction comes from") |
 | `src/main/resources/new-config/thesis.bitcoin.*.properties` | 30 | `./new-thesis-log/<scenario>/` (`./new-thesis-log-newer/` for malicious) | `src/main/resources/new-nodelist/*.csv` | **Final runs behind every figure in the thesis** (attacker fractions 16.78 / 29.68 / 66.25 %) |
 
-Apart from `sim.numSimulations`, `sim.output.directory` and
-`node.sampler.file` the two sets are identical. Every variant differs from
-`thesis.bitcoin.base.properties` in exactly one parameter:
+For the nine non-malicious scenarios the two sets differ only in
+`sim.numSimulations`, `sim.output.directory` and `node.sampler.file`. The
+three malicious scenarios differ in more than that:
+
+| Key | June set (`bitcoin-config`) | Final set (`new-config`) |
+|---|---|---|
+| `node.maliciousHashPower` (malicious / malicious2 / malicious3) | `131029646000f` / `230986096600f` / `510597523600f` | `128093904593f` / `226523957596f` / `505633833921f` |
+| `workload.targetTransaction` in `malicious.first` | `40000` | `20000` (the other two use 20000 in both sets) |
+| `node.maliciousRatio` in `malicious.first` | absent | `0.12` (unused, see below; `second`/`third` carry `0.3` / `0.9` in both sets) |
+
+**Where the attacker fraction comes from.** Every malicious config sets
+`node.maliciousPowerByRatio = false`, so `BitcoinNodeFactory` gives the
+attacker the hash power in `node.maliciousHashPower` and never reads
+`node.maliciousRatio`. The nodelist is consumed row by row: the first
+`net.numOfHonestNodes` rows (10 for `malicious1`, 9 for `malicious2`/`3`)
+become the honest nodes, and the attacker takes the next row for its
+electricity values while its hash power is replaced by the config value
+(that last row is a copy of the config value in the June set and a rounded
+one in the final set). The attacker's share of the network is therefore
+
+    node.maliciousHashPower / (sum of the honest nodelist rows + node.maliciousHashPower)
+
+which gives 16.61 / 29.28 / 64.73 % for the June set (the numbers in the
+thesis text) and 16.78 / 29.68 / 66.25 % for the final set (the numbers the
+figure runs actually used; honest sums 635076095402 / 536646042399 /
+257536166074 GH/s). Reconciling the two is an open item for the thesis /
+CCS26 text.
+
+Every variant differs from `thesis.bitcoin.base.properties` in the
+parameter(s) listed below plus `sim.output.directory` (the malicious ones
+also switch `net.numOf*Nodes`, `node.createMaliciousNode`,
+`node.maliciousPowerByRatio` and `node.sampler.file`; the base and the
+non-malicious variants carry a dead, misspelled
+`worlkoad.targetTransaction = 3` that no code reads):
 
 | Scenario (output dir) | Config file | Parameter changed from base |
 |---|---|---|
@@ -44,13 +75,13 @@ Apart from `sim.numSimulations`, `sim.output.directory` and
 | decrease-difficulty | `thesis.bitcoin.difficulty.half.properties` | `pow.difficulty = 2.90364E+23` |
 | blocksize-double | `thesis.bitcoin.blocksize_double.properties` | `bitcoin.maxBlockSize = 2000000` |
 | blocksize-half | `thesis.bitcoin.blocksize_half.properties` | `bitcoin.maxBlockSize = 500000` |
-| increase-throughput | `thesis.bitcoin.propagationTime_half.properties` | `net.throughputMean = 100000001f` (100 Mbps) |
-| decrease-throughput | `thesis.bitcoin.propagationTime_double.properties` | `net.throughputMean = 1000000f` (1 Mbps) |
+| increase-throughput | `thesis.bitcoin.propagationTime_half.properties` | `net.throughputMean = 100000001f` (100 Mbps), `net.throughputSD = 10000000f` (base 2500000f) |
+| decrease-throughput | `thesis.bitcoin.propagationTime_double.properties` | `net.throughputMean = 1000000f` (1 Mbps), `net.throughputSD = 1000f` (base 2500000f) |
 | rate-increase | `thesis.bitcoin.rate_increase.properties` | `workload.lambda = 8.161f` |
 | rate-decrease | `thesis.bitcoin.rate_decrease.properties` | `workload.lambda = 2.161f` |
-| malicious | `thesis.bitcoin.malicious.first.properties` | 10 honest + 1 attacker (`nodelist-malicious1.csv`), target tx 20000 |
-| malicious2 | `thesis.bitcoin.malicious.second.properties` | 9 honest + 1 attacker (`nodelist-malicious2.csv`), target tx 20000 |
-| malicious3 | `thesis.bitcoin.malicious.third.properties` | 9 honest + 1 attacker (`nodelist-malicious3.csv`), target tx 20000 |
+| malicious | `thesis.bitcoin.malicious.first.properties` | 10 honest + 1 attacker (`nodelist-malicious1.csv`, `node.maliciousHashPower` as above), target tx 20000 (40000 in the June set) |
+| malicious2 | `thesis.bitcoin.malicious.second.properties` | 9 honest + 1 attacker (`nodelist-malicious2.csv`, `node.maliciousHashPower` as above), target tx 20000 |
+| malicious3 | `thesis.bitcoin.malicious.third.properties` | 9 honest + 1 attacker (`nodelist-malicious3.csv`, `node.maliciousHashPower` as above), target tx 20000 |
 
 The `propagationTime_*` file names are historical: `net.propagationTime` is
 no longer read by the engine, and what these two configs vary is the
@@ -68,6 +99,12 @@ producing script output by checksum.
 |---|---|---|
 | `base_AcceptanceRatio.png` | `tools/postprocessing/rq3-settlement/main.py` (per-scenario acceptance-ratio plot) | base run `2025.06.18 11.36.16` |
 | `ecdf_comparison_plot.png` | `tools/validation-rq1/clean-data/cdf.py` | `simulation_times.csv` (block intervals of base run `2025.06.18 11.36.16`, via `filter.py` then `blocktime.py`) vs `february_bitcoin.csv` (Blockchair daily block exports for February 2024, via `feb/clean.py` then `feb/convert.py`) |
+
+The copies under `tools/validation-rq1/` and `tools/postprocessing/` are
+byte-identical to the originals in `Thesis/validation-RQ1`,
+`Thesis/PostProcessing/test-Jul8` and `Thesis/ScriptLogs/Juul15-malicious`,
+except `clean-data/simulation_times.csv`, whose CRLF line endings were
+normalised to LF (916 rows, values unchanged).
 
 ### RQ2 (majority attack, one attacker)
 

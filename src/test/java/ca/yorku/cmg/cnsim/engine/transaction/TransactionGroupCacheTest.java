@@ -170,6 +170,33 @@ class TransactionGroupCacheTest {
     }
 
     @Test
+    void comparatorsAreConsistentForEqualKeys() {
+        Transaction a = new Transaction(1, 0, 100, 50);
+        Transaction b = new Transaction(2, 0, 200, 100); // same fee rate, value and size differ
+        Transaction c = new Transaction(3, 0, 100, 50);  // same value and size as a
+
+        assertEquals(0, new TxValuePerSizeComparator().compare(a, b));
+        assertEquals(0, new TxValuePerSizeComparator().compare(b, a));
+        assertEquals(0, new TxValueComparator().compare(a, c));
+        assertEquals(0, new TxSizeComparator().compare(a, c));
+        assertTrue(new TxValuePerSizeComparator().compare(new Transaction(4, 0, 300, 50), a) < 0,
+                "higher fee rate sorts first");
+    }
+
+    @Test
+    void equalFeeRatesKeepPoolOrder() {
+        TransactionGroup pool = new TransactionGroup();
+        Transaction first = new Transaction(1, 0, 100, 50);
+        Transaction better = new Transaction(2, 0, 300, 50);
+        Transaction second = new Transaction(3, 0, 200, 100);
+        pool.addTransaction(first);
+        pool.getTopN(1e9f, FEE_RATE);
+        pool.addTransaction(better);
+        pool.addTransaction(second);
+        assertEquals(List.of(2L, 1L, 3L), ids(pool.getTopN(1e9f, FEE_RATE).getTransactions()));
+    }
+
+    @Test
     void overlapChecksAgreeWithDefinition() {
         Transaction a = new Transaction(1, 0, 10, 100);
         Transaction b = new Transaction(2, 0, 20, 200);

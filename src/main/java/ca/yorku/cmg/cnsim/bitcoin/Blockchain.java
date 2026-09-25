@@ -10,6 +10,8 @@ import ca.yorku.cmg.cnsim.engine.transaction.TransactionGroup;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The Bitcoin's blockchain structure
@@ -33,6 +35,18 @@ public class Blockchain implements IStructure {
 	 * A list of tips.
 	 */
 	ArrayList<Block> tips = new ArrayList<Block>();
+
+	/**
+	 * IDs of every transaction in every {@linkplain Block} of {@link #blockchain} (all branches).
+	 * Blocks are only ever appended to the structure and their contents do not change once they
+	 * are in it, so the set is maintained on insertion.
+	 */
+	private final Set<Long> allTxIds = new HashSet<>();
+
+	/** The tip whose chain {@link #mainChainTxIds} describes, or null. */
+	private Block mainChainTip;
+	/** IDs of the transactions on the chain from {@link #mainChainTip} back to genesis. */
+	private Set<Long> mainChainTxIds;
 	
 	
 	
@@ -87,7 +101,7 @@ public class Blockchain implements IStructure {
 
 				// Just add the block
 				b.setHeight(parent.getHeight() + 1);
-				blockchain.add(b);
+				appendBlock(b);
 
 				//Replace parent with block
 				tips.remove(parent);
@@ -176,7 +190,7 @@ public class Blockchain implements IStructure {
 				//Prepare and block to structure
 				b.setParent(par);
 				b.setHeight(par.getHeight() + 1);
-				blockchain.add(b);
+				appendBlock(b);
 				tips.add(b);
 				tips.remove(b.getParent());
 				
@@ -220,7 +234,7 @@ public class Blockchain implements IStructure {
 			//It is a genesis block
 			b.setParent(null); // it was already but for clarity
 			b.setHeight(1);
-			blockchain.add(b);
+			appendBlock(b);
 			tips.add(b);
 
 			processOrphans();
@@ -267,6 +281,17 @@ public class Blockchain implements IStructure {
 
 
 
+
+	/**
+	 * Appends a placed block to the structure and records its transactions.
+	 * @param b The block, with parent and height already set.
+	 */
+	private void appendBlock(Block b) {
+		blockchain.add(b);
+		for (Transaction t : b.getTransactions()) {
+			allTxIds.add(t.getID());
+		}
+	}
 
 	/**
 	 * @deprecated
@@ -345,17 +370,24 @@ public class Blockchain implements IStructure {
 	 * @return <tt>true</tt> if overlap exists false otherwise
 	 */
 	public boolean hasChainOverlap(Block b, Block tip) {
+		return hasChainOverlap(b.idSet(), tip);
+	}
+
+	/**
+	 * As {@link #hasChainOverlap(Block, Block)}, for a block given by its transaction IDs
+	 * (so that callers checking several tips build the set once).
+	 * @param blockTxIds The IDs of the transactions in the block to check.
+	 * @param tip The tip of the chain to check the overlap against.
+	 * @return <tt>true</tt> if overlap exists false otherwise
+	 */
+	private boolean hasChainOverlap(Set<Long> blockTxIds, Block tip) {
 		Block pointer = tip;
 		boolean overlapExists = false;
 		
 		//Do the below while you have not reached and have not found an overlap 
 		while (pointer!=null && !overlapExists) {
-			//Debug.p("----> Checking node " + pointer.getID() + " with transactions " + pointer.printIDs(","));
-			
 			//Flip overlapExists if overlap is found.
-			overlapExists = (overlapExists || pointer.overlapsWith(b)); 
-						
-			//if (overlapExists) Debug.p("----> Found overlap, abandoning branch."); 
+			overlapExists = pointer.containsAnyOf(blockTxIds);
 			// move towards the root
 			pointer = (Block) pointer.getParent();
 		}
@@ -375,14 +407,14 @@ public class Blockchain implements IStructure {
 
 		// Sort tips by height
 		Collections.sort(this.tips, new BlockHeightComparator());
-		//Debug.p("Placing Block: " + b.getID() + " with transactions " + b.printIDs(","));
+		Set<Long> blockTxIds = b.idSet();
 
 		// Loop tips from tallest to shortest
 		for (int i=0; (i < this.tips.size()) && !found;i++) {
 			t = this.tips.get(i);
 			//Debug.p("--> Trying tip " + t.getID() + " with height " + t.getHeight() + " and transactions " + t.printIDs(","));
 			//Check for overlaps
-			if (!hasChainOverlap(b,t)) {
+			if (!hasChainOverlap(blockTxIds,t)) {
 				//Debug.p("--> " + t.getID() + " it is!");
 				found = true;
 				winningTip = t;
@@ -442,13 +474,7 @@ public class Blockchain implements IStructure {
 	 * @return <tt>true</tt> if it is contained, <tt>false</tt> if it is not.
 	 */
 	public boolean contains(Transaction t) {
-		boolean found = false;
-		for (Block b : blockchain) {
-			for (Transaction r:b.getTransactions()) {
-				if (r.getID() == t.getID()) found = true;
-			}
-		}
-		return found;
+		return allTxIds.contains(t.getID());
 	}
 
 	/**
@@ -463,21 +489,19 @@ public class Blockchain implements IStructure {
 			return false;
 		}
 		Block current = (Block) block.getParent();
+		Set<Long> blockTxIds = block.idSet();
 
 		// Traverse the parental structure from the parent of the given block
 		while (current != null) {
 			counter++;
-			boolean found1 = false, found2 = false;
 
-			// Check if any block in the blockchain overlaps with the current block
-			// TODO: this must be fixed
-			if (block.overlapsWith(current)) found1 = true;
-			if (block.overlapsWithByObj(current)) found2 = true;
+			// Check if any block in the blockchain overlaps with the current block (by ID).
+			// Sharing a transaction object implies sharing its ID, so the identity-based check
+			// can only disagree when two distinct objects carry the same ID; assert that it doesn't.
+			boolean found = current.containsAnyOf(blockTxIds);
+			assert(!found || block.overlapsWithByObj(current));
 
-				// Assert to ensure consistency between overlapsWith and overlapsWithbyObj methods
-			assert(!(found1 ^ found2));
-
-			if (found1 || found2) {
+			if (found) {
 				//TODO: this is never happening. Is it normal?
 				Reporter.addErrorEntry("Block " + block.getID() + " is contained in the blockchain at height " + counter);
 				return true; // Found the block in the parental structure
@@ -621,7 +645,11 @@ public class Blockchain implements IStructure {
 		return longestTip;
 	}
 	
-	//TODO: Test this
+	/**
+	 * Checks whether a transaction is on the chain from the longest tip back to genesis.
+	 * The IDs on that chain are cached per tip (and extended in place when the new tip builds
+	 * directly on the cached one), which makes the frequent belief reports cheap.
+	 */
 	@Override
 	public boolean transactionInStructure(long txID) {
 		Block longestTip = getLongestTip();
@@ -629,15 +657,29 @@ public class Blockchain implements IStructure {
 		if (longestTip == null) {
 			return false;
 		}
-		
-		boolean found = false;
-		Block current = longestTip;
-		while (current != null) {
-			found = (found || current.contains(txID));
-			if (found) break;
-			current = (Block) current.getParent();
+		return mainChainTxIds(longestTip).contains(txID);
+	}
+
+	private Set<Long> mainChainTxIds(Block tip) {
+		if (tip == mainChainTip) {
+			return mainChainTxIds;
 		}
-		return found;
+		if (mainChainTip != null && tip.getParent() == mainChainTip) {
+			for (Transaction t : tip.getTransactions()) {
+				mainChainTxIds.add(t.getID());
+			}
+		} else {
+			mainChainTxIds = new HashSet<>();
+			Block current = tip;
+			while (current != null) {
+				for (Transaction t : current.getTransactions()) {
+					mainChainTxIds.add(t.getID());
+				}
+				current = (Block) current.getParent();
+			}
+		}
+		mainChainTip = tip;
+		return mainChainTxIds;
 	}
 	
 	public String printLongestChain() {

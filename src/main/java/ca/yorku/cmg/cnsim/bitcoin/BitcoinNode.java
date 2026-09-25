@@ -16,6 +16,12 @@ import ca.yorku.cmg.cnsim.engine.transaction.TxValuePerSizeComparator;
  *
  */
 public class BitcoinNode extends Node {
+	/**
+	 * Fee-per-byte ordering for block assembly. One shared instance, so the pool's sorted view
+	 * survives between calls to {@link TransactionGroup#getTopN(float, java.util.Comparator)}.
+	 */
+	private static final TxValuePerSizeComparator FEE_RATE_ORDER = new TxValuePerSizeComparator();
+
 	private NodeBehaviorStrategy behaviorStrategy;
 
 	protected TransactionGroup miningPool;
@@ -138,7 +144,7 @@ public class BitcoinNode extends Node {
 	}
 
 	protected void reconstructMiningPool() {
-		miningPool  = pool.getTopN(Config.getPropertyLong("bitcoin.maxBlockSize"), new TxValuePerSizeComparator());
+		miningPool  = pool.getTopN(Config.getPropertyLong("bitcoin.maxBlockSize"), FEE_RATE_ORDER);
 		//miningPool.extractGroup(blockchain.getAllOrphanTransactions());
 	}
 

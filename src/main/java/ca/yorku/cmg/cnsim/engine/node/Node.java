@@ -298,7 +298,7 @@ public abstract class Node implements INode {
 	 */
 	public void removeFromPool(ITxContainer removeThese) {
 		if ( (!pool.getTransactions().isEmpty()) && (!removeThese.getTransactions().isEmpty()) )
-			pool.getTransactions().removeAll(removeThese.getTransactions());
+			pool.removeAllOf(removeThese.getTransactions());
 	}
 
 	public void removeFromPool(Transaction removeThis) {

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, test, golden run, smoke (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 21 is the minimum the pom enforces; 25 is the current LTS.
+        java: ['21', '25']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      - name: Build and unit tests
+        run: mvn -B -ntp verify
+
+      - name: Golden run (simulation output must match tools/golden/expected.sha256)
+        run: tools/golden/check.sh
+
+      - name: Smoke-run every shipped config
+        run: tools/smoke.sh
+
+      - name: Upload jar
+        if: matrix.java == '21'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cnsim-jar
+          path: target/cnsim-*.jar
+          if-no-files-found: error
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck tool and wrapper scripts
+        run: shellcheck run tools/golden/check.sh tools/smoke.sh

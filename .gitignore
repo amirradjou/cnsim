@@ -26,6 +26,7 @@ src/site/full-documentation/Units.html
 /new-thesis-log2/
 /new-thesis-log-newer/
 /out/
+/golden-log/
 
 # Simulator output logs wherever a run drops them (each run writes "<Log> - <run id>.csv")
 BeliefLog - *.csv

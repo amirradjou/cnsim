@@ -1,6 +1,7 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
 import ca.yorku.cmg.cnsim.bitcoin.MaliciousNodeBehavior;
+import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,10 @@ class MaliciousNodeBehaviorTest {
 
     @BeforeEach
     void setUp() {
+        // BitcoinNode reads bitcoin.* and pow.* keys in its constructor; load them here
+        // rather than relying on an earlier test class having initialized Config.
+        Config.init("src/test/resources/application.properties");
+
         // Create a simple mock simulation
         mockSimulation = new Simulation(1);
         

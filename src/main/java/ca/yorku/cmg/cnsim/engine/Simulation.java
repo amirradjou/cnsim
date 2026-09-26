@@ -76,9 +76,17 @@ public class Simulation {
 
 
 
+	/**
+	 * Creates simulation {@code simID}. The process-wide clock and event counter restart, so that
+	 * a simulation's logs do not depend on which simulations ran before it in the same JVM (the
+	 * clock used to carry the previous simulation's end time into the NetLog, and event IDs kept
+	 * counting across simulations).
+	 */
 	public Simulation(int simID) {
 		this.simID = simID;
 		currentSimulationID = simID;
+		currTime = 0;
+		Event.currID = 1;
 	}
 
 	

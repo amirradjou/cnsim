@@ -34,6 +34,22 @@ class CommandLineParserTest {
     }
 
     @Test
+    void setOverridesAnyKeyAndIsRepeatable() {
+        Properties p = parser.parse(new String[] {"-c", "config.txt", "--set", "node.selfishRatio=0.3",
+                "--set", "net.topology = small-world", "--set", "weird=a=b"});
+        assertEquals("0.3", p.getProperty("node.selfishRatio"));
+        assertEquals("small-world", p.getProperty("net.topology"));
+        assertEquals("a=b", p.getProperty("weird"), "only the first '=' separates key and value");
+    }
+
+    @Test
+    void setRejectsMalformedAssignments() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(new String[] {"-c", "c.txt", "--set", "novalue"}));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(new String[] {"-c", "c.txt", "--set", "=1"}));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(new String[] {"-c", "c.txt", "--set"}));
+    }
+
+    @Test
     void testParseWithMissingConfigFile() {
         String[] args = {"--wl", "workload.txt"};
         assertThrows(IllegalArgumentException.class, () -> parser.parse(args));

@@ -35,6 +35,16 @@ public class Event_ContainerArrival extends Event {
     }
     
 
+    /** @return The container that arrives. */
+    public ITxContainer getContainer() {
+        return container;
+    }
+
+    /** @return The node at which it arrives. */
+    public INode getNode() {
+        return node;
+    }
+
     /**
      * Executes the event in the simulation, by calling the {@linkplain INode::event_NodeReceivesPropagatedContainer}
      *

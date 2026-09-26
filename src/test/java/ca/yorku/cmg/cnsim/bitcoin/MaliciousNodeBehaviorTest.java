@@ -1,51 +1,59 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
-import ca.yorku.cmg.cnsim.bitcoin.MaliciousNodeBehavior;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
 import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class MaliciousNodeBehaviorTest {
+
+    private static final String TEST_CONFIG = "src/test/resources/application.properties";
+
     private MaliciousNodeBehavior maliciousNode;
     private BitcoinNode mockNode;
-    private Simulation mockSimulation;
+
+    @TempDir
+    Path dir;
 
     @BeforeEach
     void setUp() {
         // BitcoinNode reads bitcoin.* and pow.* keys in its constructor; load them here
         // rather than relying on an earlier test class having initialized Config.
-        Config.init("src/test/resources/application.properties");
-
-        // Create a simple mock simulation
-        mockSimulation = new Simulation(1);
-        
-        // Create a BitcoinNode with the simulation
-        mockNode = new BitcoinNode(mockSimulation);
+        Config.init(TEST_CONFIG);
+        mockNode = new BitcoinNode(new Simulation(1));
         maliciousNode = new MaliciousNodeBehavior(mockNode);
     }
 
+    @AfterEach
+    void resetConfig() {
+        Config.init(TEST_CONFIG);
+    }
+
     @Test
-    void testTargetTransactionExclusionAfterAttackCompletion() {
-        // Set up target transaction
+    void testTargetTransactionExclusionAfterAttackCompletion() throws Exception {
         int targetTxID = 100;
         maliciousNode.setTargetTransaction(targetTxID);
-        
-        // Create a transaction with the target ID
         Transaction targetTransaction = new Transaction(targetTxID, 1000, 50, 100);
-        
+
         // Simulate attack completion by setting the flag directly
         // (in a real run revealHiddenChain() sets it).
-        try {
-            java.lang.reflect.Field field = MaliciousNodeBehavior.class.getDeclaredField("isAttackCompleted");
-            field.setAccessible(true);
-            field.set(maliciousNode, true);
-        } catch (Exception e) {
-            fail("Failed to set attack completion flag: " + e.getMessage());
-        }
+        java.lang.reflect.Field field = MaliciousNodeBehavior.class.getDeclaredField("isAttackCompleted");
+        field.setAccessible(true);
+        field.set(maliciousNode, true);
 
         // After the attack the target must be dropped on receipt, whether it
         // arrives from a client or via propagation: neither call may reach the
@@ -59,125 +67,48 @@ class MaliciousNodeBehaviorTest {
                 "Pool must stay empty after the target is ignored");
     }
 
-    @Test
-    void testSetTargetTransaction() {
-        // Test setting target transaction by ID
-        int targetTxID = 100;
-        maliciousNode.setTargetTransaction(targetTxID);
-        
-        // We can't easily verify this without exposing the field, but we can test that it doesn't throw an exception
-        assertDoesNotThrow(() -> maliciousNode.setTargetTransaction(targetTxID));
+    /** The reveal rule with the thesis thresholds (min 2, max 15). */
+    @ParameterizedTest(name = "hidden {0}, public growth {1} -> reveal {2}")
+    @CsvSource({
+            "0, 0, false",
+            "3, 2, false",   // longer, but only 2 confirmations: not past min
+            "3, 3, false",   // not longer than the public growth
+            "4, 3, true",    // longer and 3 > min confirmations
+            "10, 9, true",
+            "9, 9, false",
+            "1, 15, false",  // at max, not beyond
+            "1, 16, true",   // beyond max: reveal regardless
+    })
+    void revealRule(int hidden, int growth, boolean reveal) {
+        assertEquals(reveal, MaliciousNodeBehavior.shouldReveal(hidden, growth,
+                MaliciousNodeBehavior.DEFAULT_MIN_CHAIN_LENGTH, MaliciousNodeBehavior.DEFAULT_MAX_CHAIN_LENGTH));
+    }
+
+    @ParameterizedTest(name = "hidden {0}, public growth {1} -> abandon {2}")
+    @CsvSource({
+            "14, 14, false", // below max
+            "15, 15, true",  // at max and not longer
+            "10, 15, true",
+            "16, 15, false", // longer: the reveal rule fires instead
+    })
+    void abandonRule(int hidden, int growth, boolean abandon) {
+        assertEquals(abandon, MaliciousNodeBehavior.shouldAbandon(hidden, growth,
+                MaliciousNodeBehavior.DEFAULT_MAX_CHAIN_LENGTH));
     }
 
     @Test
-    void testEvent_NodeReceivesClientTransaction() {
-        // Test behavior when a client transaction is received
-        // Ensure that the transaction is processed correctly
-        // Use assertions to verify the expected results
+    void thresholdsDefaultToTheThesisValues() {
+        assertEquals(2, MaliciousNodeBehavior.DEFAULT_MIN_CHAIN_LENGTH);
+        assertEquals(15, MaliciousNodeBehavior.DEFAULT_MAX_CHAIN_LENGTH);
     }
 
     @Test
-    void testEvent_NodeReceivesPropagatedTransaction() {
-        // Test behavior when a propagated transaction is received
-        // Ensure that the transaction is processed correctly
-        // Use assertions to verify the expected results
-    }
-
-    @Test
-    void testEvent_NodeReceivesPropagatedContainer() {
-        // Test behavior when a propagated container (block) is received
-        // Ensure that the container is processed correctly
-        // Use assertions to verify the expected results
-    }
-
-    @Test
-    void testEvent_NodeCompletesValidation() {
-        // Test behavior when block validation is completed
-        // Ensure that the validation process is handled correctly
-        // Use assertions to verify the expected results
-    }
-
-    @Test
-    void testConfigureNodeForAttack() {
-        // Test the configuration of the node for an attack
-        // Verify that node parameters are set correctly
-        // Use assertions to check parameter values
-    }
-
-    @Test
-    void testManageMiningPostValidation() {
-        // Test the management of mining operations after block validation
-        // Ensure that mining-related properties are updated correctly
-        // Use assertions to verify the expected results
-    }
-
-    @Test
-    void testCalculateBlockchainSizeAtAttackStart() {
-        // Test the calculation of blockchain size at the start of an attack
-        // Ensure that the size is calculated correctly
-        // Use assertions to check the calculated size
-    }
-
-    @Test
-    void testHandleNewBlockReceptionInAttack() {
-        // Test the handling of a new block reception during an attack
-        // Verify that the block is added to the blockchain and pools are updated
-        // Use assertions to check the expected changes
-    }
-
-    @Test
-    void testShouldRevealHiddenChain() {
-        // Test the condition for revealing the hidden chain
-        // Ensure that the condition is correctly determined
-        // Use assertions to check the result
-    }
-
-    @Test
-    void testCheckAndRevealHiddenChain() {
-        // Test the check and reveal of the hidden chain
-        // Verify that the hidden chain is revealed when conditions are met
-        // Use assertions to check the revealed chain and other state changes
-    }
-
-    @Test
-    void testLogCreation() {
-        // Test the logging of node creation
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
-    }
-
-    @Test
-    void testLogTransaction() {
-        // Test the logging of transaction events
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
-    }
-
-    @Test
-    void testLogStartAttack() {
-        // Test the logging of attack start
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
-    }
-
-    @Test
-    void testLogBlockchainGrowth() {
-        // Test the logging of blockchain growth
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
-    }
-
-    @Test
-    void testLogBlockValidation() {
-        // Test the logging of block validation
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
-    }
-
-    @Test
-    void testLogStartAttackByValidation() {
-        // Test the logging of attack start by validation
-        // Verify that the log messages are generated correctly
-        // Use assertions or logging capture to check the log output
+    void thresholdsMustBeOrdered() throws IOException {
+        Path p = dir.resolve("config.properties");
+        Files.writeString(p, Files.readString(Path.of(TEST_CONFIG))
+                + "\n" + MaliciousNodeBehavior.MIN_CHAIN_LENGTH_KEY + " = 6\n"
+                + MaliciousNodeBehavior.MAX_CHAIN_LENGTH_KEY + " = 3\n");
+        Config.init(p.toString());
+        assertThrows(IllegalArgumentException.class, () -> new MaliciousNodeBehavior(mockNode));
     }
 }

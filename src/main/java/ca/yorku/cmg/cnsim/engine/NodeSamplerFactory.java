@@ -75,11 +75,12 @@ public class NodeSamplerFactory {
 	}
 
 	/**
-	 * Mining intervals are drawn from the node sampler's random stream. Simulations are
-	 * independent replicas only from the moment that stream uses a seed with its update flag set
-	 * (seed + simulation ID); intervals drawn earlier are the same in every simulation, and a
-	 * pending mining event keeps its time until the node finds a block. Returns a warning when that
-	 * moment is after t = 0 or never comes before the run ends, null otherwise.
+	 * Mining intervals are drawn from the node sampler's random stream. Simulations share their
+	 * history until that stream switches to a seed with its update flag set (seed + simulation
+	 * ID), and evolve independently from then on (pending mining events are redrawn at the
+	 * switch). Sharing the history up to the arrival of the transaction under study is the CNSim
+	 * method's design; never switching is not. Returns a warning when the switch never comes
+	 * before the run ends, a note when it comes after t = 0, and null otherwise.
 	 */
 	static String replicaIndependenceWarning(long[] seeds, boolean[] flags, long[] switchTimes, long terminateAt) {
 		if (seeds == null || seeds.length == 0 || flags == null || flags.length == 0) {
@@ -106,9 +107,8 @@ public class NodeSamplerFactory {
 					+ "so every simulation uses the same mining randomness and the replicas are not independent. "
 					+ "Set node.sampler.seedUpdateTimes = {0} (with updateSeedFlags {false,true}) to make them independent.";
 		}
-		return "Warning: the node sampler switches to a per-simulation seed only at t = " + independentFrom
-				+ " ms; mining intervals drawn before then are shared by all simulations, which correlates the "
-				+ "replicas. node.sampler.seedUpdateTimes = {0} makes them independent from the start.";
+		return "Note: the simulations share their history until t = " + independentFrom
+				+ " ms, when the node sampler switches to a per-simulation seed, and evolve independently from then on.";
 	}
 
 	private static void warnIfReplicasShareRandomness(long[] seeds, boolean[] flags, long[] switchTimes) {

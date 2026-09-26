@@ -27,9 +27,9 @@ class ReplicaIndependenceTest {
 	}
 
 	@Test
-	void switchingLaterThanZeroIsFlagged() {
+	void switchingLaterThanZeroIsNotedAsSharedHistory() {
 		String w = NodeSamplerFactory.replicaIndependenceWarning(new long[] {444, 222}, new boolean[] {false, true}, new long[] {1000}, END);
 		assertNotNull(w);
-		assertTrue(w.contains("t = 1000"));
+		assertTrue(w.startsWith("Note") && w.contains("t = 1000"));
 	}
 }

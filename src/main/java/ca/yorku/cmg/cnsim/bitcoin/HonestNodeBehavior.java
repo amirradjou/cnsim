@@ -162,7 +162,7 @@ public class HonestNodeBehavior implements NodeBehaviorStrategy {
     protected void handleNewBlockReception(Block b) {
         Block tipBefore = node.tipBeforeChange();
         //Add block to blockchain
-        node.blockchain.addToStructure(b);
+        node.blockchain.addReceivedBlock(b);
         //Remove block transactions from pool.
         node.getPool().extractGroup(b);
         //If the main chain switched branches, move transactions between chain and pool.

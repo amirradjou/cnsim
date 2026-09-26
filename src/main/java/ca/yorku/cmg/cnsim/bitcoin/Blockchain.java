@@ -81,6 +81,45 @@ public class Blockchain implements IStructure {
 
 
 	/**
+	 * Adds a block that another node produced, or one of this node's own blocks that it published
+	 * after withholding it. Unlike {@link #addToStructure(Block)}, which treats a block without a
+	 * parent as this node's freshly mined block and appends it to its best tip, a received block
+	 * without a parent is a competing genesis block: it becomes another root. (Appending it to a
+	 * tip would re-parent a block object other nodes share, or discard it when it repeats the
+	 * transactions of this node's own first block, orphaning everything built on it.)
+	 * @param b The block.
+	 */
+	public void addReceivedBlock(Block b) {
+		if (b.hasParent()) {
+			placeBlockInChain(b);
+		} else {
+			placeRoot(b);
+		}
+	}
+
+	private void placeRoot(Block b) {
+		if (getBlockByID(b.getID()) != null) {
+			return;
+		}
+		boolean competing = !blockchain.isEmpty();
+		b.setHeight(1);
+		appendBlock(b);
+		tips.add(b);
+		if (competing) {
+			BitcoinReporter.reportBlockEvent(
+					Simulation.currentSimulationID,
+            		Simulation.currTime,
+            		System.currentTimeMillis() - Simulation.sysStartTime,
+            		b.getCurrentNodeID(),
+					b.getID(), -1, b.getHeight(), b.printIDs(";"),
+					"Appended On Chain (competing genesis)",
+                    b.getValidationDifficulty(),
+                    b.getValidationCycles());
+		}
+		processOrphans();
+	}
+
+	/**
 	 * The {@linkplain Block} has parent, i.e. is the result of propagation. If the parent does not exist in the blockchain,
 	 * add the {@linkplain Block} to the orphans. If it is found, first check for overlaps with the chain (checking transaction IDs).
 	 * If those are not found, then just add the {@linkplain Block} to the blockchain with that parent.

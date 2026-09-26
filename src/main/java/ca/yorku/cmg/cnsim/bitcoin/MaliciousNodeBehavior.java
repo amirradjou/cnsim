@@ -77,6 +77,11 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
     }
 
     private void startAttack(Block b) {
+        // Keep the target so it can be marked double-spent when the hidden chain is revealed.
+        Transaction target = b.getTransactionById(targetTxID);
+        if (target != null) {
+            targetTransaction = target;
+        }
         BitcoinReporter.reportBlockEvent(
 				Simulation.currentSimulationID,
         		Simulation.currTime,
@@ -383,6 +388,11 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
         }
         isAttackInProgress = false;
         isAttackCompleted = true; // Mark attack as completed
+        // The published chain replaces the target: honest nodes must not mine it again when
+        // they return abandoned transactions to their pools (bitcoin.reorg.restoreTransactions).
+        if (targetTransaction != null) {
+            targetTransaction.markDoubleSpent();
+        }
         hiddenChain = new ArrayList<Block>();
         reconstructMiningPoolFiltered();
         

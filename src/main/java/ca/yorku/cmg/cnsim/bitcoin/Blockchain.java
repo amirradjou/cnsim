@@ -11,6 +11,7 @@ import ca.yorku.cmg.cnsim.engine.transaction.TransactionGroup;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -623,6 +624,39 @@ public class Blockchain implements IStructure {
 			}
 		}
 		return maxHeight;
+	}
+
+	/**
+	 * The blocks that leave and join the main chain when it moves from one tip to another.
+	 * @param abandoned Blocks on the old main chain but not on the new one, newest first.
+	 * @param adopted Blocks on the new main chain but not on the old one, newest first.
+	 */
+	public record Reorg(List<Block> abandoned, List<Block> adopted) {}
+
+	/**
+	 * Compares the chains ending at two tips (blocks are matched by ID, since a structure may
+	 * hold another node's copy of a block).
+	 * @param oldTip The previous main-chain tip.
+	 * @param newTip The current main-chain tip.
+	 * @return The blocks each chain has that the other lacks.
+	 */
+	public static Reorg reorg(Block oldTip, Block newTip) {
+		List<Block> abandoned = new ArrayList<>();
+		List<Block> adopted = new ArrayList<>();
+		Block a = oldTip, b = newTip;
+		while (a != null && b != null && a.getID() != b.getID()) {
+			if (a.getHeight() >= b.getHeight()) {
+				abandoned.add(a);
+				a = (Block) a.getParent();
+			} else {
+				adopted.add(b);
+				b = (Block) b.getParent();
+			}
+		}
+		// Different genesis blocks: the rest of either chain differs too.
+		for (; a != null && b == null; a = (Block) a.getParent()) abandoned.add(a);
+		for (; b != null && a == null; b = (Block) b.getParent()) adopted.add(b);
+		return new Reorg(abandoned, adopted);
 	}
 
 	/**

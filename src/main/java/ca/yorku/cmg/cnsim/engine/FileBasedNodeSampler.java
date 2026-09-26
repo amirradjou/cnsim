@@ -77,6 +77,23 @@ public class FileBasedNodeSampler extends AbstractNodeSampler {
 	}
 
 	@Override
+	public long getNextLeaderSlots(double p) {
+		return alternativeSampler.getNextLeaderSlots(p);
+	}
+
+	/**
+	 * Sets the difficulty here and on the wrapped sampler, which is the one that draws the mining
+	 * intervals.
+	 */
+	@Override
+	public void setCurrentDifficulty(double currentDifficulty) {
+		super.setCurrentDifficulty(currentDifficulty);
+		if (alternativeSampler != null) {
+			alternativeSampler.setCurrentDifficulty(currentDifficulty);
+		}
+	}
+
+	@Override
 	public float getNextNodeElectricPower() {
 		if (!nodeElectricPowers.isEmpty()) {
 			return (nodeElectricPowers.poll());

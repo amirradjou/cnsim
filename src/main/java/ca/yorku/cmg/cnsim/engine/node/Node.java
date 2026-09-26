@@ -458,13 +458,17 @@ public abstract class Node implements INode {
 	
 	/**
 	 * Schedules a validation event for the specified transaction container at the given time.
+	 * The delay is a proof-of-work mining interval, or comes from the simulation's
+	 * {@linkplain Simulation#getLeaderElection() leader election} when one is set.
 	 * @param txc The transaction container to be validated.
 	 * @param time The simulation time when the scheduling occurs. The even will be scheduled at `time + mining interval`. 
-	 * @return The scheduled mining interval in seconds.
+	 * @return The scheduled mining interval in milliseconds.
 	 * @author Sotirios Liaskos
 	 */
 	public long scheduleValidationEvent(ITxContainer txc, long time) {
-		long h = sim.getSampler().getNodeSampler().getNextMiningInterval(getHashPower());
+		long h = (sim.getLeaderElection() != null)
+				? sim.getLeaderElection().nextBlockDelay(this, time)
+				: sim.getSampler().getNodeSampler().getNextMiningInterval(getHashPower());
 	    Event_ContainerValidation e = new Event_ContainerValidation(txc, this, time + h);
 	    this.nextValidationEvent = e;
 	    sim.schedule(e);

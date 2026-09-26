@@ -13,6 +13,7 @@ import ca.yorku.cmg.cnsim.engine.Profiling;
 import ca.yorku.cmg.cnsim.engine.Sampler;
 import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.TransactionSamplerFactory;
+import ca.yorku.cmg.cnsim.engine.consensus.ConsensusSetup;
 import ca.yorku.cmg.cnsim.engine.event.Event_NewTransactionArrival;
 import ca.yorku.cmg.cnsim.engine.network.AbstractNetwork;
 import ca.yorku.cmg.cnsim.engine.network.NetworkFactory;
@@ -173,6 +174,23 @@ public class BitcoinMainDriver {
         ns.setNodeFactory(new BitcoinNodeFactory("Malicious", s, ns));
         ns.addNodes(Config.getPropertyInt("net.numOfMaliciousNodes"));
 
+        // Block production: proof of work (difficulty given or derived from
+        // pow.targetBlockInterval) or a proof-of-stake slot lottery. See ConsensusSetup.
+        double difficulty = ConsensusSetup.configure(s, ns);
+        if (Config.hasProperty(ConsensusSetup.TARGET_INTERVAL_KEY) && s.getLeaderElection() == null) {
+            for (INode node : ns.getNodes()) {
+                ((BitcoinNode) node).setOperatingDifficulty(difficulty);
+            }
+            if (simID == 1) {
+                System.out.printf("    Difficulty %.6g for a mean block interval of %s ms%n",
+                        difficulty, Config.getPropertyString(ConsensusSetup.TARGET_INTERVAL_KEY));
+            }
+        }
+        if (s.getLeaderElection() != null && simID == 1) {
+            System.out.println("    Block production: " + s.getLeaderElection().describe());
+        }
+
+        
         //
         //
         // Creating the network

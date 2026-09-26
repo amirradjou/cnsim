@@ -39,7 +39,7 @@ public class BitcoinNode extends Node {
 		miningPool = new TransactionGroup();
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");
-		this.operatingDifficulty = Config.getPropertyDouble("pow.difficulty");
+		this.operatingDifficulty = configuredDifficulty();
 	}
 	public BitcoinNode(Simulation sim, NodeBehaviorStrategy behaviorStrategy) {
 		super(sim);
@@ -49,7 +49,15 @@ public class BitcoinNode extends Node {
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");
 
-		this.operatingDifficulty = Config.getPropertyDouble("pow.difficulty");
+		this.operatingDifficulty = configuredDifficulty();
+	}
+
+	/**
+	 * pow.difficulty, or -1 when it is not set (it may be derived from pow.targetBlockInterval
+	 * once all nodes exist, or not apply at all under proof of stake).
+	 */
+	private static double configuredDifficulty() {
+		return Config.hasProperty("pow.difficulty") ? Config.getPropertyDouble("pow.difficulty") : -1;
 	}
 
 

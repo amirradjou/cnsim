@@ -10,8 +10,11 @@ import ca.yorku.cmg.cnsim.engine.transaction.TransactionGroup;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -43,6 +46,16 @@ public class Blockchain implements IStructure {
 	 * are in it, so the set is maintained on insertion.
 	 */
 	private final Set<Long> allTxIds = new HashSet<>();
+
+	/**
+	 * Tie-break between equally long branches. {@code false} (default) keeps the original rule:
+	 * whichever tip comes first in the tip list, which after block placement means the highest
+	 * block ID. {@code true} keeps the branch whose tip arrived first, as Bitcoin Core does.
+	 */
+	private final boolean firstSeen;
+	/** Arrival order of the blocks in the structure, by block ID (used when {@link #firstSeen}). */
+	private final Map<Integer, Long> arrivalOrder = new HashMap<>();
+	private long arrivals;
 
 	/** The tip whose chain {@link #mainChainTxIds} describes, or null. */
 	private Block mainChainTip;
@@ -322,12 +335,25 @@ public class Blockchain implements IStructure {
 
 
 
+	public Blockchain() {
+		this(false);
+	}
+
+	/**
+	 * @param firstSeen Whether ties between equally long branches go to the branch whose tip
+	 *        arrived first (Bitcoin Core's rule) rather than the original rule.
+	 */
+	public Blockchain(boolean firstSeen) {
+		this.firstSeen = firstSeen;
+	}
+
 	/**
 	 * Appends a placed block to the structure and records its transactions.
 	 * @param b The block, with parent and height already set.
 	 */
 	private void appendBlock(Block b) {
 		blockchain.add(b);
+		arrivalOrder.putIfAbsent(b.getID(), arrivals++);
 		for (Transaction t : b.getTransactions()) {
 			allTxIds.add(t.getID());
 		}
@@ -446,7 +472,7 @@ public class Blockchain implements IStructure {
 		boolean found = false;
 
 		// Sort tips by height
-		Collections.sort(this.tips, new BlockHeightComparator());
+		Collections.sort(this.tips, firstSeen ? firstSeenOrder() : new BlockHeightComparator());
 		Set<Long> blockTxIds = b.idSet();
 
 		// Loop tips from tallest to shortest
@@ -711,11 +737,21 @@ public class Blockchain implements IStructure {
 
 		Block longestTip = tips.get(0);
 		for (Block tip : tips) {
-			if (tip.getHeight() > longestTip.getHeight()) {
+			if (tip.getHeight() > longestTip.getHeight()
+					|| (firstSeen && tip.getHeight() == longestTip.getHeight() && arrived(tip) < arrived(longestTip))) {
 				longestTip = tip;
 			}
 		}
 		return longestTip;
+	}
+
+	private long arrived(Block b) {
+		return arrivalOrder.getOrDefault(b.getID(), Long.MAX_VALUE);
+	}
+
+	/** Tallest first; among equally tall tips, the one that arrived first. */
+	private Comparator<Block> firstSeenOrder() {
+		return Comparator.comparingInt(Block::getHeight).reversed().thenComparingLong(this::arrived);
 	}
 	
 	/**

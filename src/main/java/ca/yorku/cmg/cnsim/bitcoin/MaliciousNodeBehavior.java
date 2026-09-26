@@ -1,16 +1,24 @@
 package ca.yorku.cmg.cnsim.bitcoin;
+import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.Debug;
 import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.transaction.ITxContainer;
 import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
-    //TODO: Make these parameterizable
-	//private static final int MIN_CHAIN_LENGTH = 6;
-	private static final int MIN_CHAIN_LENGTH = 2;
-    private static final int MAX_CHAIN_LENGTH = 15;
+    /** Config keys for the reveal thresholds; the defaults are the values the thesis used. */
+    public static final String MIN_CHAIN_LENGTH_KEY = "bitcoin.attack.minChainLength";
+    public static final String MAX_CHAIN_LENGTH_KEY = "bitcoin.attack.maxChainLength";
+    public static final int DEFAULT_MIN_CHAIN_LENGTH = 2;
+    public static final int DEFAULT_MAX_CHAIN_LENGTH = 15;
+
+    /** The public chain must grow by more than this many blocks before the hidden chain is revealed. */
+    private final int minChainLength;
+    /** Past this public growth the attacker reveals (if ahead) or gives up. */
+    private final int maxChainLength;
 
     private ArrayList<Block> hiddenChain=new ArrayList<Block>();
     private Transaction targetTransaction;
@@ -34,6 +42,14 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
         this.isAttackInProgress = false;
         this.node = node;
         this.honestBehavior = new HonestNodeBehavior(node);
+        this.minChainLength = Config.hasProperty(MIN_CHAIN_LENGTH_KEY)
+                ? Config.getPropertyInt(MIN_CHAIN_LENGTH_KEY) : DEFAULT_MIN_CHAIN_LENGTH;
+        this.maxChainLength = Config.hasProperty(MAX_CHAIN_LENGTH_KEY)
+                ? Config.getPropertyInt(MAX_CHAIN_LENGTH_KEY) : DEFAULT_MAX_CHAIN_LENGTH;
+        if (minChainLength < 0 || maxChainLength < minChainLength) {
+            throw new IllegalArgumentException("Need 0 <= " + MIN_CHAIN_LENGTH_KEY + " <= " + MAX_CHAIN_LENGTH_KEY
+                    + ", got " + minChainLength + " and " + maxChainLength);
+        }
     }
 
 
@@ -166,12 +182,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                 //reportBlockEvent(b, "Propagated Block Discarded");
             }
             checkAndRevealHiddenChain(b);
-            // If public chain growth reached threshold and hidden chain is not longer, abandon attack
-            if (shouldAbandonAttack()) {
-                isAttackInProgress = false;
-                hiddenChain.clear();
-                Debug.p("Attack abandoned: public chain growth threshold reached and hidden chain not longer.");
-            }
+            abandonAttackIfBeaten(b);
         }
         else { //attack not in progress
             if (!node.blockchain.contains(b)) {
@@ -269,12 +280,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
             }
             manageMiningPostValidation();
             checkAndRevealHiddenChain(newBlock);
-            // If public chain growth reached threshold and hidden chain is not longer, abandon attack
-            if (shouldAbandonAttack()) {
-                isAttackInProgress = false;
-                hiddenChain.clear();
-                Debug.p("Attack abandoned: public chain growth threshold reached and hidden chain not longer.");
-            }
+            abandonAttackIfBeaten(newBlock);
         } else { //Attack not in progress
             Block b = (Block) t;
             b.validateBlock(node.miningPool,
@@ -309,11 +315,10 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                     node.blockchain.addToStructure(b);
                     node.propagateContainer(b, time);
                     lastBlock = (Block) b.parent;
-                    node.stopMining();
-                    node.resetNextValidationEvent();
-                    node.reconstructMiningPool();
-                    node.miningPool.removeTransaction(targetTxID);
-                    node.considerMining(Simulation.currTime);
+                    // Mining restarts once, below. Restarting here as well used to leave the
+                    // first new validation event scheduled but forgotten (stopMining and
+                    // resetNextValidationEvent do not cancel it), so the attacker kept two
+                    // mining events alive and mined at twice its hash rate.
                     filterTargetTransactionFromPools();
                 } else {
                     BitcoinReporter.reportBlockEvent(
@@ -383,7 +388,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
         for (int i = hiddenChain.size()-1; i >= 0; i--) {
             Block b = hiddenChain.get(i);
             b.parent = i==0 ? lastBlock : hiddenChain.get(i-1);
-            node.blockchain.addToStructure(b);
+            node.blockchain.addReceivedBlock(b);
             node.propagateContainer(b, Simulation.currTime);
         }
         isAttackInProgress = false;
@@ -456,14 +461,30 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
     }
 
     private void handleNewBlockReceptionInAttack(Block b) {
-        node.blockchain.addToStructure(b);
+        node.blockchain.addReceivedBlock(b);
         reconstructMiningPoolFiltered();
         node.considerMining(Simulation.currTime);
     }
 
     private boolean shouldRevealHiddenChain() {
-        return (hiddenChain.size() > publicChainGrowthSinceAttack && publicChainGrowthSinceAttack > MIN_CHAIN_LENGTH)
-                || publicChainGrowthSinceAttack > MAX_CHAIN_LENGTH;
+        return shouldReveal(hiddenChain.size(), publicChainGrowthSinceAttack, minChainLength, maxChainLength);
+    }
+
+    /**
+     * The reveal rule: reveal once the hidden chain is longer than the public chain's growth since
+     * the attack started and that growth exceeds {@code min} (enough confirmations for the victim to
+     * accept the payment), or once the growth exceeds {@code max} regardless.
+     */
+    static boolean shouldReveal(int hiddenLength, int publicGrowth, int min, int max) {
+        return (hiddenLength > publicGrowth && publicGrowth > min) || publicGrowth > max;
+    }
+
+    /**
+     * The give-up rule: the public chain has grown by {@code max} or more and the hidden chain is
+     * not longer.
+     */
+    static boolean shouldAbandon(int hiddenLength, int publicGrowth, int max) {
+        return publicGrowth >= max && hiddenLength <= publicGrowth;
     }
 
     private void checkAndRevealHiddenChain(Block b) {
@@ -515,9 +536,58 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
     }
 
     // Helper: Should the attack be abandoned?
+    /**
+     * Gives up when the public chain has grown past the maximum and the hidden chain is not
+     * longer, and records that in the block log.
+     */
+    private void abandonAttackIfBeaten(Block b) {
+        if (!shouldAbandonAttack()) return;
+        BitcoinReporter.reportBlockEvent(
+                Simulation.currentSimulationID,
+                Simulation.currTime,
+                System.currentTimeMillis() - Simulation.sysStartTime,
+                node.getID(),
+                b.getID(),
+                ((b.getParent() == null) ? -1 : b.getParent().getID()), b.getHeight(),
+                b.printIDs(";"),
+                "Attack abandoned (hidden " + hiddenChain.size() + ", public growth " + publicChainGrowthSinceAttack + ")",
+                b.getValidationDifficulty(),
+                b.getValidationCycles());
+        isAttackInProgress = false;
+        List<Block> discarded = new ArrayList<>(hiddenChain);
+        hiddenChain.clear();
+        resyncPoolWithMainChain(discarded);
+        Debug.p("Attack abandoned: public chain growth threshold reached and hidden chain not longer.");
+    }
+
+    /**
+     * After giving up, the attacker follows the public chain again. Its pool may still hold
+     * transactions that chain already contains (when it mined the target's block itself it kept
+     * that block's transactions for the hidden chain), and every block it mined from them would
+     * be discarded as overlapping its own chain. Drop those, and give back the transactions that
+     * only the discarded hidden blocks held.
+     */
+    private void resyncPoolWithMainChain(List<Block> discardedHiddenBlocks) {
+        List<Transaction> onMainChain = new ArrayList<>();
+        for (Transaction t : node.getPool().getTransactions()) {
+            if (node.blockchain.transactionInStructure(t.getID())) {
+                onMainChain.add(t);
+            }
+        }
+        node.getPool().removeAllOf(onMainChain);
+        for (Block h : discardedHiddenBlocks) {
+            for (Transaction t : h.getTransactions()) {
+                if (!node.blockchain.transactionInStructure(t.getID()) && !node.getPool().contains(t)) {
+                    node.getPool().addTransaction(t);
+                }
+            }
+        }
+        reconstructMiningPoolFiltered();
+        node.considerMining(Simulation.currTime);
+    }
+
     private boolean shouldAbandonAttack() {
-        // If public chain growth reached threshold and hidden chain is not longer, abandon
-        return (publicChainGrowthSinceAttack >= MAX_CHAIN_LENGTH && hiddenChain.size() <= publicChainGrowthSinceAttack);
+        return shouldAbandon(hiddenChain.size(), publicChainGrowthSinceAttack, maxChainLength);
     }
 }
 

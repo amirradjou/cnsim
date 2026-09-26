@@ -1,5 +1,6 @@
 package ca.yorku.cmg.cnsim.engine;
 
+import ca.yorku.cmg.cnsim.engine.consensus.LeaderElection;
 import ca.yorku.cmg.cnsim.engine.event.Event;
 import ca.yorku.cmg.cnsim.engine.event.EventTimeComparator;
 import ca.yorku.cmg.cnsim.engine.event.Event_NewTransactionArrival;
@@ -32,6 +33,8 @@ public class Simulation {
 	private AbstractNetwork net;
 	//protected AbstractSampler sampler;
 	protected Sampler sampler;
+	/** Replaces proof-of-work mining intervals when set (e.g. a proof-of-stake slot lottery). */
+	private LeaderElection leaderElection;
 
 
 	public int totalqueuedTransactions = 0;
@@ -122,6 +125,18 @@ public class Simulation {
 	 */
 	public Sampler getSampler() {
 	    return sampler;
+	}
+
+	/**
+	 * @return The leader election that decides when nodes produce blocks, or {@code null} for
+	 *         proof of work (mining intervals from hash power and difficulty).
+	 */
+	public LeaderElection getLeaderElection() {
+		return leaderElection;
+	}
+
+	public void setLeaderElection(LeaderElection leaderElection) {
+		this.leaderElection = leaderElection;
 	}
 
 	

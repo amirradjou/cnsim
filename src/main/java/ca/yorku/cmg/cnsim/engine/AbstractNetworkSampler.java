@@ -10,6 +10,9 @@ public abstract class AbstractNetworkSampler implements ISowable {
 	
     protected float netThroughputMean;
     protected float netThroughputSD;    
+    /** One-way link latency (ms); both 0 means the network has no latency. */
+    protected float netLatencyMean;
+    protected float netLatencySD;
 
     
     public AbstractNetworkSampler() {
@@ -109,6 +112,38 @@ public abstract class AbstractNetworkSampler implements ISowable {
     public void LoadConfig() {
         this.setNetThroughputMean(Config.getPropertyFloat("net.throughputMean"));
         this.setNetThroughputSD(Config.getPropertyFloat("net.throughputSD"));
+        this.setNetLatency(Config.getPropertyFloat("net.latencyMean", 0f), Config.getPropertyFloat("net.latencySD", 0f));
+    }
+
+    /**
+     * Sets the latency distribution of links (truncated normal, milliseconds).
+     * @param mean Mean one-way latency in ms, at least 0.
+     * @param sd Standard deviation in ms, at least 0.
+     */
+    public void setNetLatency(float mean, float sd) {
+        if (mean < 0 || sd < 0)
+            throw new ArithmeticException("Network latency mean and SD must be >= 0");
+        this.netLatencyMean = mean;
+        this.netLatencySD = sd;
+    }
+
+    /**
+     * @return Whether links have latency (net.latencyMean or net.latencySD above 0).
+     */
+    public boolean hasLatency() {
+        return netLatencyMean > 0 || netLatencySD > 0;
+    }
+
+    /**
+     * Returns a sample of one-way link latency. Does not touch the random stream when the
+     * network has no latency.
+     * @return Latency in milliseconds (0 when not configured).
+     */
+    public float getNextConnectionLatency() {
+        if (!hasLatency()) {
+            return 0;
+        }
+        return sampler.getGaussian(netLatencyMean, netLatencySD, random);
     }
     
 }

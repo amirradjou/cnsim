@@ -117,7 +117,9 @@ public class HonestNodeBehavior implements NodeBehaviorStrategy {
         if (!node.blockchain.contains(b)) {
             b.setParent(null);
             //Add block to blockchain
+            Block tipBefore = node.tipBeforeChange();
             node.blockchain.addToStructure(b);
+            node.reconcilePoolAfterReorg(tipBefore);
             
             //Propagate a clone of the block to the rest of the network
             try {
@@ -158,10 +160,13 @@ public class HonestNodeBehavior implements NodeBehaviorStrategy {
 //    }
 
     protected void handleNewBlockReception(Block b) {
+        Block tipBefore = node.tipBeforeChange();
         //Add block to blockchain
         node.blockchain.addToStructure(b);
         //Remove block transactions from pool.
         node.getPool().extractGroup(b);
+        //If the main chain switched branches, move transactions between chain and pool.
+        node.reconcilePoolAfterReorg(tipBefore);
         // Reconstruct mining pool based on the new information.
         node.reconstructMiningPool();
         //Consider starting or stopping mining.

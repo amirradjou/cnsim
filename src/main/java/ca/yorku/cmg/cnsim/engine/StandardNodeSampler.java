@@ -94,6 +94,21 @@ public class StandardNodeSampler extends AbstractNodeSampler {
 
     
     /**
+     * See parent. Inverse-CDF sample of a geometric distribution on {1, 2, ...}.
+     */
+    @Override
+    public long getNextLeaderSlots(double p) {
+        if (!(p >= 0 && p <= 1))
+            throw new ArithmeticException("Leader probability must be in [0, 1], got " + p);
+        if (p == 0)
+            return Long.MAX_VALUE;
+        if (p == 1)
+            return 1;
+        double u = random.nextDouble();
+        return 1 + (long) Math.floor(Math.log(1 - u) / Math.log1p(-p));
+    }
+
+    /**
      * See parent. Use Normal distribution.
      */
     @Override

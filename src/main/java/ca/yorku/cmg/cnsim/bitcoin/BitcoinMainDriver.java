@@ -15,8 +15,7 @@ import ca.yorku.cmg.cnsim.engine.Simulation;
 import ca.yorku.cmg.cnsim.engine.TransactionSamplerFactory;
 import ca.yorku.cmg.cnsim.engine.event.Event_NewTransactionArrival;
 import ca.yorku.cmg.cnsim.engine.network.AbstractNetwork;
-import ca.yorku.cmg.cnsim.engine.network.FileBasedEndToEndNetwork;
-import ca.yorku.cmg.cnsim.engine.network.RandomEndToEndNetwork;
+import ca.yorku.cmg.cnsim.engine.network.NetworkFactory;
 import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
 import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.Node;
@@ -174,32 +173,19 @@ public class BitcoinMainDriver {
         ns.setNodeFactory(new BitcoinNodeFactory("Malicious", s, ns));
         ns.addNodes(Config.getPropertyInt("net.numOfMaliciousNodes"));
 
-        
         //
         //
         // Creating the network
         //
         //
 
-        //Define network.
-        //If a file exists it will be file-based, otherwise, just create a standard network.
-        //System.out.println("    Creating Network for Sim #" + simID);
-        AbstractNetwork net = null;
-        String netFilePath = Config.getPropertyString("net.sampler.file");
-        if (netFilePath != null) {
-            try {
-                //Debug.p("    Creating file-based network.");
-                net = new FileBasedEndToEndNetwork(ns, netFilePath);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            try {
-                net = new RandomEndToEndNetwork(ns, sampler);
-                //Debug.p("     Creating random network.");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        //Define network: an end-to-end throughput file, the original all-pairs random network,
+        //or a peer-to-peer overlay (net.topology); see NetworkFactory.
+        AbstractNetwork net;
+        try {
+            net = NetworkFactory.createNetwork(ns, sampler);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not create the network: " + e.getMessage(), e);
         }
 
         s.setNetwork(net);

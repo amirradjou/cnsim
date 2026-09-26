@@ -9,9 +9,16 @@ public class Config {
     static Properties prop = new Properties();
     static boolean initialized = false;
     
+    /**
+     * Loads the configuration from a properties file, replacing any configuration loaded before.
+     * @param propFileName Path of the properties file.
+     */
     public static void init(String propFileName) {
         try (InputStream inputStream = new FileInputStream(propFileName)) {
-        	prop.load(inputStream);
+        	Properties fresh = new Properties();
+        	fresh.load(inputStream);
+        	prop.clear();
+        	prop.putAll(fresh);
         	initialized = true;
         } catch (Exception e) {
             System.err.println("Exception (Config): " + e);

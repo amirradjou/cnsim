@@ -12,6 +12,8 @@ public class Transaction {
 	protected int nodeID = -1;
 	protected Type type;
 	protected boolean seedChanging;
+	/** Set once a conflicting spend has won (see {@link #markDoubleSpent()}). */
+	protected boolean doubleSpent;
 
 	public void makeSeedChanging() {
 		this.seedChanging = true;
@@ -19,6 +21,19 @@ public class Transaction {
 
 	public boolean isSeedChanging() {
 		return(this.seedChanging);
+	}
+
+	/**
+	 * Marks the transaction as double-spent: a chain that replaces it with a conflicting spend
+	 * has been published, so honest nodes must not mine it again. CNSim has no explicit
+	 * conflicting transactions; the majority attacker sets this when it reveals its chain.
+	 */
+	public void markDoubleSpent() {
+		this.doubleSpent = true;
+	}
+
+	public boolean isDoubleSpent() {
+		return doubleSpent;
 	}
 	
 	/**

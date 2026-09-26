@@ -59,6 +59,8 @@ actual=$work/actual.sha256
 for file in "$run_dir"/*; do
     log=$(basename "$file")
     log=${log%% - *}
+    # Provenance records wall-clock times and machine details: not part of the result.
+    [ "$log" = Provenance ] && continue
     printf '%s  %s\n' "$(normalize "$log" "$file" | sha256sum | cut -d' ' -f1)" "$log"
 done | LC_ALL=C sort -k2 > "$actual"
 

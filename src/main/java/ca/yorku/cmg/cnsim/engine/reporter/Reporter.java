@@ -5,7 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 
 import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.node.Node;
@@ -24,13 +23,14 @@ import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
  * 
  */
 public class Reporter {
-	// Each of the arraylists below contain a line in the output
-	protected static ArrayList<String> inputTxLog = new ArrayList<String>();
-	protected static ArrayList<String> eventLog = new ArrayList<String>();
-	protected static ArrayList<String> nodeLog = new ArrayList<String>();
-	protected static ArrayList<String> netLog = new ArrayList<String>();
-	protected static ArrayList<String> beliefLog = new ArrayList<String>();
-	protected static ArrayList<String> errorLog = new ArrayList<String>();
+	// Each log is streamed to its file as lines arrive (see LogStream), so memory use does not
+	// grow with the length or number of simulations.
+	protected static LogStream inputTxLog;
+	protected static LogStream eventLog;
+	protected static LogStream nodeLog;
+	protected static LogStream netLog;
+	protected static LogStream beliefLog;
+	protected static LogStream errorLog;
 
 	protected static String runId;
 	protected static String path;
@@ -83,11 +83,12 @@ public class Reporter {
 		} catch (IOException e) {e.printStackTrace();}
 		
 		//Prepare the reporting structures
-		eventLog.add("SimID, EventID, SimTime, SysTime, EventType, Node, Object");
-		inputTxLog.add("SimID, TxID, Size (bytes), Value (coins), ArrivalTime (ms)");
-		nodeLog.add("SimID, NodeID, HashPower (GH/s), ElectricPower (W), ElectricityCost (USD/kWh), TotalCycles");
-		netLog.add("SimID, From (NodeID), To (NodeID), Bandwidth (bps), Time (ms from start)");
-		beliefLog.add("SimID, Node ID, Transaction ID, Believes, Time (ms from start)");
+		eventLog = new LogStream(path + "EventLog - " + runId + ".csv", "SimID, EventID, SimTime, SysTime, EventType, Node, Object");
+		inputTxLog = new LogStream(path + "Input - " + runId + ".csv", "SimID, TxID, Size (bytes), Value (coins), ArrivalTime (ms)");
+		nodeLog = new LogStream(path + "Nodes - " + runId + ".csv", "SimID, NodeID, HashPower (GH/s), ElectricPower (W), ElectricityCost (USD/kWh), TotalCycles");
+		netLog = new LogStream(path + "NetLog - " + runId + ".csv", "SimID, From (NodeID), To (NodeID), Bandwidth (bps), Time (ms from start)");
+		beliefLog = new LogStream(path + "BeliefLog - " + runId + ".csv", "SimID, Node ID, Transaction ID, Believes, Time (ms from start)");
+		errorLog = new LogStream(path + "ErrorLog - " + runId + ".txt", null);
 	}
 	
 	public static String getRunId() {
@@ -216,16 +217,7 @@ public class Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushEvtReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(path + "EventLog - " + runId + ".csv");
-			for(String str: eventLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		eventLog.close();
 	}
 	
 	/**
@@ -233,16 +225,7 @@ public class Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushInputReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(path + "Input - " + runId + ".csv");
-			for(String str: inputTxLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		inputTxLog.close();
 	}
 	
 	
@@ -252,16 +235,7 @@ public class Reporter {
 	 */
 
 	public static void flushNodeReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(path + "Nodes - " + runId + ".csv");
-			for(String str: nodeLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		nodeLog.close();
 	}
 	
 	
@@ -270,16 +244,7 @@ public class Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushNetworkReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(path + "NetLog - " + runId + ".csv");
-			for(String str: netLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		netLog.close();
 	}
 	
 	
@@ -288,16 +253,7 @@ public class Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushBeliefReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(path + "BeliefLog - " + runId + ".csv");
-			for(String str: beliefLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		beliefLog.close();
 	}
 	
 	
@@ -306,20 +262,9 @@ public class Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushErrorReport() {
-		FileWriter writer;
-		boolean errorsExist = false;
-		try {
-			writer = new FileWriter(path + "ErrorLog - " + runId + ".txt");
-			for(String str: errorLog) {
-				writer.write(str + System.lineSeparator());
-				errorsExist = true;
-			}
-			writer.close();
-			if (errorsExist) {
-				System.err.println("    Errors were produced. Please check " + path + "ErrorLog - " + runId + ".txt");
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
+		errorLog.close();
+		if (errorLog.lineCount() > 0) {
+			System.err.println("    Errors were produced. Please check " + errorLog.getFile());
 		}
 	}
 	

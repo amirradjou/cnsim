@@ -1,6 +1,7 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Scanner;
 
@@ -21,6 +22,7 @@ import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
 import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.Node;
 import ca.yorku.cmg.cnsim.engine.node.NodeSet;
+import ca.yorku.cmg.cnsim.engine.reporter.Provenance;
 import ca.yorku.cmg.cnsim.engine.reporter.ReportEventFactory;
 import ca.yorku.cmg.cnsim.engine.reporter.Reporter;
 import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
@@ -37,8 +39,8 @@ public class BitcoinMainDriver {
 
 
     private void run(String[] args) {
-    	
-        System.out.println("CNSim ver");
+        Instant startedAt = Instant.now();
+        System.out.println("CNSim " + Provenance.describeBuild());
                 
         System.out.println("  * Setting up environment:");
     	System.out.println("  * Current directory: " + System.getProperty("user.dir"));
@@ -76,6 +78,7 @@ public class BitcoinMainDriver {
         BitcoinReporter.flushBeliefReport();
         BitcoinReporter.flushErrorReport();
         BitcoinReporter.flushConfig();
+        Provenance.write(args, startedAt);
     }
 
     private void runSingleSimulation(int simID) {

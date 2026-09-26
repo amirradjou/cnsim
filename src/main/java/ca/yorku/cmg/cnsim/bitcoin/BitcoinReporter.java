@@ -1,9 +1,7 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
 
+import ca.yorku.cmg.cnsim.engine.reporter.LogStream;
 import ca.yorku.cmg.cnsim.engine.reporter.Reporter;
 
 /**
@@ -16,9 +14,8 @@ import ca.yorku.cmg.cnsim.engine.reporter.Reporter;
  * 
  */
 public class BitcoinReporter extends Reporter {
-	protected static ArrayList<String> blockLog = new ArrayList<String>();
-	protected static ArrayList<String> structureLog = new ArrayList<String>();
-	protected static FileWriter blockWriter;
+	protected static LogStream blockLog;
+	protected static LogStream structureLog;
 
 	
 	protected static boolean reportBlockEvents;
@@ -35,10 +32,12 @@ public class BitcoinReporter extends Reporter {
 
 	
 	static {
-		blockLog.add("SimID, SimTime,SysTime,NodeID,"
+		blockLog = new LogStream(Reporter.path + "BlockLog - " + Reporter.runId + ".csv",
+				"SimID, SimTime,SysTime,NodeID,"
 				+ "BlockID,ParentID,Height,BlockContent,"
 				+ "EvtType,Difficulty,Cycles");
-		structureLog.add("SimID, SimTime, SysTime, NodeID, BlockID, ParentBlockID, Height, Content, Place");
+		structureLog = new LogStream(Reporter.path + "StructureLog - " + Reporter.runId + ".csv",
+				"SimID, SimTime, SysTime, NodeID, BlockID, ParentBlockID, Height, Content, Place");
 	}
 	
 	
@@ -105,16 +104,7 @@ public class BitcoinReporter extends Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushBlockReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(Reporter.path + "BlockLog - " + Reporter.runId + ".csv");
-			for(String str: blockLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		blockLog.close();
 	}
 
 
@@ -124,16 +114,7 @@ public class BitcoinReporter extends Reporter {
 	 * @author Sotirios Liaskos
 	 */
 	public static void flushStructReport() {
-		FileWriter writer;
-		try {
-			writer = new FileWriter(Reporter.path + "StructureLog - " + Reporter.runId + ".csv");
-			for(String str: structureLog) {
-				  writer.write(str + System.lineSeparator());
-				}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+		structureLog.close();
 	}
 	
 }

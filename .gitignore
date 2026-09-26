@@ -39,3 +39,9 @@ Input - *.csv
 Config - *.csv
 ErrorLog - *.txt
 *LatestFileName.txt
+
+# Python tooling (tools/finality)
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

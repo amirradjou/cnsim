@@ -44,6 +44,20 @@ jobs:
           path: target/cnsim-*.jar
           if-no-files-found: error
 
+  finality-tool:
+    name: Finality analysis tool (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/finality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Tests
+        run: uv run pytest
+
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest

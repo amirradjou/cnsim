@@ -29,6 +29,11 @@ public class Event_ContainerValidation extends Event {
         super.setTime(time);
     }
 
+    /** @return The container being validated. */
+    public ITxContainer getContainer() {
+        return container;
+    }
+
     /**
      * Executes the event in the simulation. If the event is marked to be ignored an entry 
      * is added to the logs. 

@@ -57,6 +57,18 @@ public class RandomEndToEndNetwork extends AbstractNetwork {
 	            }
 	        }
 	    }
+		// Latencies (net.latencyMean/SD) are drawn after all throughputs, so configs without
+		// latency get exactly the throughputs they always did.
+		if (sampler.getNetworkSampler().hasLatency()) {
+			int n = Config.getPropertyInt("net.numOfNodes");
+			for (int i = 1; i <= n; i++) {
+				for (int j = i + 1; j <= n; j++) {
+					float ms = sampler.getNetworkSampler().getNextConnectionLatency();
+					setLatency(i, j, ms);
+					setLatency(j, i, ms);
+				}
+			}
+		}
 	}
 
 	// #TODO

@@ -18,6 +18,12 @@ public abstract class AbstractNetwork {
 	public float[][] Net;
 
 	/**
+	 * One-way latency in milliseconds between node pairs, added to the transmission time, or
+	 * {@code null} when the network has no latency (the original model).
+	 */
+	protected float[][] latency;
+
+	/**
 	 * Constructor. 
 	 * @param ns A NodeSet object representing the nodes of the network.
 	 * @throws Exception 
@@ -59,7 +65,35 @@ public abstract class AbstractNetwork {
 		if(size < 0)
 			throw new ArithmeticException("Size < 0");
 		float bps = getThroughput(origin, destination);
-		return(getPropagationTime(bps, size));
+		long transmission = getPropagationTime(bps, size);
+		if (latency == null || transmission < 0) {
+			return transmission;
+		}
+		return transmission + Math.round(latency[origin][destination]);
+	}
+
+	/**
+	 * Sets the one-way latency from origin to destination. Setting a zero latency on a network
+	 * without latencies leaves it without them.
+	 * @param origin The ID of the origin node.
+	 * @param destination The ID of the destination node.
+	 * @param ms Latency in milliseconds, at least 0.
+	 */
+	public void setLatency(int origin, int destination, float ms) {
+		if (ms < 0 || Float.isNaN(ms))
+			throw new ArithmeticException("Latency must be >= 0, got " + ms);
+		if (latency == null) {
+			if (ms == 0) return;
+			latency = new float[Net.length][Net.length];
+		}
+		latency[origin][destination] = ms;
+	}
+
+	/**
+	 * @return The one-way latency (ms) from origin to destination, 0 if the network has none.
+	 */
+	public float getLatency(int origin, int destination) {
+		return (latency == null) ? 0 : latency[origin][destination];
 	}
 
 	

@@ -42,9 +42,23 @@ public class BitcoinNode extends Node {
 
 	public void _______________Constructors() {}
 
+	/** Config key: {@code first-seen} makes ties between equal branches go to the first-received tip. */
+	public static final String TIE_BREAK_KEY = "consensus.tieBreak";
+
+	private static Blockchain newBlockchain() {
+		String rule = Config.getPropertyString(TIE_BREAK_KEY);
+		if (rule == null || rule.isBlank() || rule.trim().equalsIgnoreCase("legacy")) {
+			return new Blockchain(false);
+		}
+		if (rule.trim().equalsIgnoreCase("first-seen")) {
+			return new Blockchain(true);
+		}
+		throw new IllegalArgumentException("Unknown " + TIE_BREAK_KEY + " '" + rule + "'. Use legacy or first-seen");
+	}
+
 	public BitcoinNode(Simulation sim) {
 		super(sim);
-		blockchain = new Blockchain();
+		blockchain = newBlockchain();
 		miningPool = new TransactionGroup();
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");
@@ -54,7 +68,7 @@ public class BitcoinNode extends Node {
 	public BitcoinNode(Simulation sim, NodeBehaviorStrategy behaviorStrategy) {
 		super(sim);
 		this.behaviorStrategy = behaviorStrategy;
-		blockchain = new Blockchain();
+		blockchain = newBlockchain();
 		miningPool = new TransactionGroup();
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");

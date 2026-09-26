@@ -173,6 +173,15 @@ public class BitcoinMainDriver {
         ns.addNodes(Config.getPropertyInt("net.numOfHonestNodes"));
         ns.setNodeFactory(new BitcoinNodeFactory("Malicious", s, ns));
         ns.addNodes(Config.getPropertyInt("net.numOfMaliciousNodes"));
+        // Optional selfish miner (net.numOfSelfishNodes, node.selfishRatio); see SelfishMiningBehavior.
+        int numSelfish = Config.hasProperty("net.numOfSelfishNodes") ? Config.getPropertyInt("net.numOfSelfishNodes") : 0;
+        if (numSelfish > 1) {
+            throw new IllegalArgumentException("net.numOfSelfishNodes: one selfish miner is supported, got " + numSelfish);
+        }
+        if (numSelfish == 1) {
+            ns.setNodeFactory(new BitcoinNodeFactory("Selfish", s, ns));
+            ns.addNodes(1);
+        }
 
         // Block production: proof of work (difficulty given or derived from
         // pow.targetBlockInterval) or a proof-of-stake slot lottery. See ConsensusSetup.

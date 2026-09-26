@@ -62,6 +62,8 @@ public class Sampler {
     protected float getGaussian(float mean, float deviation, Random random) {
     	if(deviation < 0)
     		throw new ArithmeticException("Standard deviation < 0");
+    	if (mean <= 0 && deviation == 0)
+    		throw new ArithmeticException("A positive sample needs mean > 0 or deviation > 0");
     	float gaussianValue = mean + (float) random.nextGaussian() * deviation;
     	while(gaussianValue <= 0) {
     		gaussianValue = mean + (float) random.nextGaussian() * deviation;

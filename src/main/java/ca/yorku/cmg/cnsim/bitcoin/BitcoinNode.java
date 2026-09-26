@@ -31,6 +31,15 @@ public class BitcoinNode extends Node {
 	protected long minValueToMine;
 	protected long minSizeToMine;
 
+	/** Config key: return transactions of blocks that leave the main chain to the pool. */
+	public static final String RESTORE_ON_REORG_KEY = "bitcoin.reorg.restoreTransactions";
+	/**
+	 * When the main chain switches branches, whether transactions that were only in the
+	 * abandoned blocks go back into the pool (as in Bitcoin Core). Off by default, which keeps
+	 * the original behaviour where they are lost; that matters only when forks are frequent.
+	 */
+	protected final boolean restoreOnReorg;
+
 	public void _______________Constructors() {}
 
 	public BitcoinNode(Simulation sim) {
@@ -39,7 +48,8 @@ public class BitcoinNode extends Node {
 		miningPool = new TransactionGroup();
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");
-		this.operatingDifficulty = Config.getPropertyDouble("pow.difficulty");
+		this.operatingDifficulty = configuredDifficulty();
+		this.restoreOnReorg = Config.hasProperty(RESTORE_ON_REORG_KEY) && Config.getPropertyBoolean(RESTORE_ON_REORG_KEY);
 	}
 	public BitcoinNode(Simulation sim, NodeBehaviorStrategy behaviorStrategy) {
 		super(sim);
@@ -49,7 +59,16 @@ public class BitcoinNode extends Node {
 		minValueToMine = Config.getPropertyLong("bitcoin.minValueToMine");
 		minSizeToMine = Config.getPropertyLong("bitcoin.minSizeToMine");
 
-		this.operatingDifficulty = Config.getPropertyDouble("pow.difficulty");
+		this.operatingDifficulty = configuredDifficulty();
+		this.restoreOnReorg = Config.hasProperty(RESTORE_ON_REORG_KEY) && Config.getPropertyBoolean(RESTORE_ON_REORG_KEY);
+	}
+
+	/**
+	 * pow.difficulty, or -1 when it is not set (it may be derived from pow.targetBlockInterval
+	 * once all nodes exist, or not apply at all under proof of stake).
+	 */
+	private static double configuredDifficulty() {
+		return Config.hasProperty("pow.difficulty") ? Config.getPropertyDouble("pow.difficulty") : -1;
 	}
 
 
@@ -141,6 +160,48 @@ public class BitcoinNode extends Node {
 
 	public boolean isWorthMining() {
 		return((miningPool.getValue() > getMinValueToMine()));
+	}
+
+	/**
+	 * @return The current main-chain tip if reorg handling is on, else {@code null}; pass it to
+	 *         {@link #reconcilePoolAfterReorg(Block)} after changing the structure.
+	 */
+	protected Block tipBeforeChange() {
+		return restoreOnReorg ? blockchain.getLongestTip() : null;
+	}
+
+	/**
+	 * If the main chain moved to another branch since {@code oldTip}, removes the transactions of
+	 * newly adopted blocks from the pool and returns to it those of abandoned blocks that are not
+	 * on the new main chain (unless double-spent). No-op when reorg handling is off.
+	 * @param oldTip The tip returned by {@link #tipBeforeChange()}.
+	 */
+	protected void reconcilePoolAfterReorg(Block oldTip) {
+		if (!restoreOnReorg || oldTip == null) return;
+		Block newTip = blockchain.getLongestTip();
+		if (newTip == null || newTip.getID() == oldTip.getID()) return;
+		Block parent = (Block) newTip.getParent();
+		if (parent != null && parent.getID() == oldTip.getID()) return; // plain extension
+		Blockchain.Reorg r = Blockchain.reorg(oldTip, newTip);
+		for (Block adopted : r.adopted()) {
+			pool.extractGroup(adopted);
+		}
+		int restored = 0;
+		for (Block abandoned : r.abandoned()) {
+			for (Transaction t : abandoned.getTransactions()) {
+				if (!t.isDoubleSpent() && !blockchain.transactionInStructure(t.getID()) && !pool.contains(t)) {
+					pool.addTransaction(t);
+					restored++;
+				}
+			}
+		}
+		if (!r.abandoned().isEmpty()) {
+			BitcoinReporter.reportBlockEvent(sim.getSimID(), Simulation.currTime,
+					System.currentTimeMillis() - Simulation.sysStartTime, getID(), newTip.getID(),
+					parent == null ? -1 : parent.getID(), newTip.getHeight(), "{}",
+					"Reorg: " + r.abandoned().size() + " block(s) abandoned, " + restored + " tx restored",
+					-1, -1);
+		}
 	}
 
 	protected void reconstructMiningPool() {

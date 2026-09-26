@@ -226,7 +226,9 @@ public abstract class AbstractNodeSampler implements IMultiSowable {
         this.setNodeElectricPowerSD(Config.getPropertyFloat("node.electricPowerSD"));
         this.setNodeElectricCostMean(Config.getPropertyFloat("node.electricCostMean"));
         this.setNodeElectricCostSD(Config.getPropertyFloat("node.electricCostSD"));
-        this.setCurrentDifficulty(Config.getPropertyDouble("pow.difficulty"));
+        // Optional: pow.targetBlockInterval can set the difficulty once the nodes exist, and
+        // proof-of-stake runs have none (see ConsensusSetup).
+        this.setCurrentDifficulty(Config.hasProperty("pow.difficulty") ? Config.getPropertyDouble("pow.difficulty") : Double.NaN);
     }
     
 	
@@ -265,5 +267,17 @@ public abstract class AbstractNodeSampler implements IMultiSowable {
 	 * @return The ID of a selected node.
 	 */
     public abstract int getNextRandomNode(int nNodes);
+
+    /**
+     * Get a sample of how many slots it takes a node that leads each slot independently with
+     * probability {@code p} to lead one (geometric, at least 1). Used by proof-of-stake leader
+     * election; draws from the same random stream as the mining intervals.
+     * @param p The per-slot leader probability.
+     * @return The number of slots up to and including the first one led, or {@code Long.MAX_VALUE}
+     *         when {@code p} is 0.
+     */
+    public long getNextLeaderSlots(double p) {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not sample leader slots");
+    }
 
 }

@@ -85,6 +85,23 @@ public class BitcoinNodeFactory extends AbstractNodeFactory {
 			System.out.println("    Malicious node " + node.getID() + " target transaction: " + targetTxID);
 			((MaliciousNodeBehavior) strategy).setTargetTransaction(targetTxID);
 			
+		} else if (this.defaultNodeType.equals("Selfish")) {
+			strategy = new SelfishMiningBehavior(node);
+			node.setBehavior(INode.BehaviorType.SELFISH);
+			if (Config.hasProperty("node.selfishRatio")) {
+				if (this.refNs == null) {
+					throw new Exception("Selfish power by ratio requested but reference node set not provided.");
+				}
+				float ratio = Config.getPropertyFloat("node.selfishRatio");
+				if (!(ratio > 0 && ratio < 1)) {
+					throw new Exception("node.selfishRatio must be in (0, 1), got " + ratio);
+				}
+				// Share of the total hash power of all nodes, including this one.
+				nodeHashPower = ratio / (1 - ratio) * refNs.getTotalHonestHP();
+			} else {
+				nodeHashPower = Config.getPropertyFloat("node.selfishHashPower");
+			}
+			node.setHashPower(nodeHashPower);
 		} else {
 			strategy = new HonestNodeBehavior(node);
 		}

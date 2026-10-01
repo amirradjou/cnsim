@@ -56,6 +56,12 @@ Building these checks uncovered bugs that are now fixed, including a double-spen
 
 One simulation of the thesis base configuration (11 nodes, 75,000 transactions, 4.7 simulated hours) takes **9.5 s instead of 269 s** on a laptop, with byte-identical output: the mempool keeps its fee-rate order between receipts, and chain lookups use hash sets. Logs are streamed to disk, so memory does not grow with the number of simulations.
 
+`--parallel N` (or `-p N`) runs the simulations of a run in N processes and merges their logs. Each simulation depends only on its ID, so the merged logs are the same as a sequential run's; CI checks this on the golden run.
+
+```bash
+java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c src/main/resources/new-config/thesis.bitcoin.base.properties --sims 30 --parallel 6
+```
+
 ## Outputs
 
 Each run writes a directory `<sim.output.directory>/<run id>/`:

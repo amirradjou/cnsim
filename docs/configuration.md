@@ -16,6 +16,8 @@ The effective configuration of every run is saved as `Config - <run id>.csv`, an
 | `sim.reporting.beliefReportOffset` | *required* | Belief reports continue this long after the last scheduled workload event. |
 | `sim.reporting.window` | *required* | Events between periodic node reports (no effect for Bitcoin nodes). |
 | `sim.initialMiningPoolTransactions` | 0 | Transactions placed in every node's pool before the workload starts. |
+| `sim.parallelism` | 1 | Run the simulations in this many processes (`-p N` / `--parallel N`); the logs are merged and are the same as a sequential run's. Each process gets an even share of half the physical memory unless `-Xmx` is given. |
+| `sim.firstSimID` | 1 | ID of the first simulation (set per process by `--parallel`; seeds derive from the ID). |
 
 ## Block production
 

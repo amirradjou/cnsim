@@ -94,6 +94,11 @@ public class Reporter {
 	public static String getRunId() {
 		return(runId);
 	}
+
+	/** @return The run directory (ends with a separator). */
+	public static String getRunPath() {
+		return path;
+	}
 	
 	/**
 	 * Adds a line to the event log with information about the event.

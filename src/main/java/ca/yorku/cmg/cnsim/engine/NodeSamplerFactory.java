@@ -111,6 +111,22 @@ public class NodeSamplerFactory {
 				+ " ms, when the node sampler switches to a per-simulation seed, and evolve independently from then on.";
 	}
 
+	/**
+	 * Prints the replica-independence note for the configured node sampler seeds (see
+	 * {@link #replicaIndependenceWarning}); for runs whose simulations happen in other processes.
+	 */
+	public static void printReplicaNote() {
+		String seeds = Config.getPropertyString("node.sampler.seed");
+		if (seeds == null || seeds.isEmpty()) {
+			return;
+		}
+		String times = Config.getPropertyString("node.sampler.seedUpdateTimes");
+		String flags = Config.getPropertyString("node.sampler.updateSeedFlags");
+		warnIfReplicasShareRandomness(Config.parseStringToArray(seeds),
+				flags == null ? null : Config.parseStringToBoolean(flags),
+				times == null ? null : Config.parseStringToArray(times));
+	}
+
 	private static void warnIfReplicasShareRandomness(long[] seeds, boolean[] flags, long[] switchTimes) {
 		if (!Config.hasProperty("sim.numSimulations") || Config.getPropertyInt("sim.numSimulations") < 2
 				|| !Config.hasProperty("sim.terminate.atTime")) {

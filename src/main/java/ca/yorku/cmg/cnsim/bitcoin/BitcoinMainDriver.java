@@ -1,6 +1,8 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.Scanner;
@@ -10,6 +12,7 @@ import ca.yorku.cmg.cnsim.engine.ConfigInitializer;
 import ca.yorku.cmg.cnsim.engine.Debug;
 import ca.yorku.cmg.cnsim.engine.NetworkSamplerFactory;
 import ca.yorku.cmg.cnsim.engine.NodeSamplerFactory;
+import ca.yorku.cmg.cnsim.engine.ParallelRunner;
 import ca.yorku.cmg.cnsim.engine.Profiling;
 import ca.yorku.cmg.cnsim.engine.Sampler;
 import ca.yorku.cmg.cnsim.engine.Simulation;
@@ -59,12 +62,30 @@ public class BitcoinMainDriver {
         BitcoinReporter.reportStructureEvents(Config.getPropertyBoolean("reporter.reportStructureEvents"));
         
         
-        // Get the number of simulations to run
+        // Get the number of simulations to run, the first simulation ID (a run can be one slice
+        // of a larger one) and the number of processes to spread them over.
         int numSimulations = Config.getPropertyInt("sim.numSimulations");
+        int firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
+        int parallelism = Config.hasProperty("sim.parallelism") ? Config.getPropertyInt("sim.parallelism") : 1;
 
+        if (parallelism > 1 && numSimulations > 1) {
+            NodeSamplerFactory.printReplicaNote();
+            try {
+                ParallelRunner.run(args, BitcoinMainDriver.class, Paths.get(Reporter.getRunPath()),
+                        firstSimID, numSimulations, parallelism);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while waiting for the simulations", e);
+            }
+            BitcoinReporter.flushConfig();
+            Provenance.write(args, startedAt);
+            return;
+        }
 
         // SIM SCOPE STARTS HERE
-        for (int simID = 1; simID <= numSimulations; simID++) {
+        for (int simID = firstSimID; simID < firstSimID + numSimulations; simID++) {
             runSingleSimulation(simID);
         }
         // SIM SCOPE ENDS HERE

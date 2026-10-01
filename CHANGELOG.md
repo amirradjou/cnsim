@@ -11,6 +11,7 @@ The thesis and CCS26 results were produced with the code at tag `thesis-v1.0-art
 - **results: a competing genesis block could freeze a node.** A node that had its own first block discarded or re-parented another node's first block, and everything built on it stayed an orphan there forever.
 - **results (opt-in, `bitcoin.reorg.restoreTransactions`): transactions of abandoned blocks were lost** after a reorg. No node would mine them again. With the flag they return to the pool.
 - **results (only with a mid-run seed switch): pending mining events survived a seed switch**, so simulations meant to diverge at that point still shared their next blocks. They are now redrawn at the switch. Configs that switch at t = 0 or never are unaffected.
+- The NetLog of every simulation after the first logged its links at the previous simulation's end time, and EventLog IDs kept counting across simulations; the clock and event IDs now restart with each simulation.
 - `TxValuePerSizeComparator`, `TxValueComparator` and `TxSizeComparator` violated the `Comparator` contract for equal keys. No tested thesis scenario changed.
 - `MaliciousNodeBehaviorTest` only passed after another test had loaded the configuration; `Config.init` now replaces earlier configuration.
 
@@ -26,6 +27,7 @@ The thesis and CCS26 results were produced with the code at tag `thesis-v1.0-art
 - `tools/demo.sh`: double-spend finality by attacker share in one command.
 - **Provenance** file with every run: commit, uncommitted-changes flag, Java version, command line, and input-file hashes.
 - `--set key=value` command-line overrides.
+- **`--parallel N`**: the simulations of a run in N processes, with merged logs identical to a sequential run's.
 - A warning when simulations would never diverge (the thesis configs switch seeds only at the end).
 - CI: build and tests on JDK 21 and 25, the golden run, a smoke run of every shipped config, the analysis tool's tests, and shellcheck.
 

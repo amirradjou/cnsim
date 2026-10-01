@@ -45,6 +45,14 @@ public final class CommandLineParser {
     private Long numSimulations;
 
     @CommandLineOption(
+            key = "sim.parallelism",
+            description = "Run the simulations in this many processes (default 1)",
+            argument = "<long>",
+            aliases = {"-p", "--parallel"}
+    )
+    private Long parallelism;
+
+    @CommandLineOption(
             key = "workload.sampler.file",
             description = "Workload file path",
             argument = "<file>",

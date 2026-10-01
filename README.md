@@ -44,7 +44,7 @@ java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c examples/networks/bitcoin.propertie
 | **Attacks** | A double-spend attacker with a hidden chain (the thesis attack), and selfish mining ([examples/attacks](examples/attacks/README.md)). |
 | **Measurements** | Per-node belief in sample transactions over time; block, structure, transaction, node, network and event logs; a provenance record per run. [Estimated finality, time to finality and belief curves](tools/finality/README.md) with confidence intervals. |
 
-All settings are listed in [docs/configuration.md](docs/configuration.md).
+All settings are listed in [docs/configuration.md](docs/configuration.md); [docs/architecture.md](docs/architecture.md) explains how a run works, with diagrams of the event flow and the two attackers.
 
 ## Validation
 

@@ -19,6 +19,13 @@ cd tools/finality && uv run cnsim-finality finality ../../out/litecoin --horizon
 tools/demo.sh                                    # the figure above
 ```
 
+Or without a local JDK:
+
+```bash
+docker build -t cnsim .
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/out:/cnsim/out" cnsim -c examples/networks/litecoin.properties --sims 10
+```
+
 Any configuration key can be overridden on the command line, which makes parameter sweeps one-liners:
 
 ```bash

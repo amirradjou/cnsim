@@ -28,6 +28,7 @@ The thesis and CCS26 results were produced with the code at tag `thesis-v1.0-art
 - **Provenance** file with every run: commit, uncommitted-changes flag, Java version, command line, and input-file hashes.
 - `--set key=value` command-line overrides.
 - **`--parallel N`**: the simulations of a run in N processes, with merged logs identical to a sequential run's.
+- A Dockerfile: the simulator and the shipped configs in a JRE image, with the build commit recorded for provenance.
 - A warning when simulations would never diverge (the thesis configs switch seeds only at the end).
 - CI: build and tests on JDK 21 and 25, the golden run, a smoke run of every shipped config, the analysis tool's tests, and shellcheck.
 

@@ -1,6 +1,7 @@
 package ca.yorku.cmg.cnsim.engine;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Properties;
@@ -12,6 +13,7 @@ public class Config {
     /**
      * Loads the configuration from a properties file, replacing any configuration loaded before.
      * @param propFileName Path of the properties file.
+     * @throws ConfigException If the file cannot be read.
      */
     public static void init(String propFileName) {
         try (InputStream inputStream = new FileInputStream(propFileName)) {
@@ -20,31 +22,25 @@ public class Config {
         	prop.clear();
         	prop.putAll(fresh);
         	initialized = true;
-        } catch (Exception e) {
-            System.err.println("Exception (Config): " + e);
-            e.printStackTrace();
-            System.exit(-1);
+        } catch (IOException e) {
+            throw new ConfigException("Cannot read configuration file " + propFileName + ": " + e.getMessage(), e);
         }
     }
-    
+
     public static void chk(String propertyKey) throws Exception {
-    	if (!initialized) {
-    		throw new Exception("Error: configuration file uninitialized.");
-    	} else if (prop.getProperty(propertyKey) == null) {
-    		throw new Exception("Error reading configuration file: property '" + propertyKey + "' does not exist.");
-    	}
+    	check(propertyKey);
     }
 
+    /**
+     * @throws ConfigException If no configuration is loaded or the key is missing.
+     */
     public static void check(String propertyKey) {
-    	try {
-			chk(propertyKey);
-		} catch (Exception e) {
-			e.printStackTrace();
-    		System.exit(-1);
-		}
+    	if (!initialized) {
+    		throw new ConfigException("No configuration loaded.");
+    	} else if (prop.getProperty(propertyKey) == null) {
+    		throw new ConfigException("Missing configuration key '" + propertyKey + "'.");
+    	}
     }
-    
-    
 
     public static String getProperty(String propertyKey, boolean returnNull) {
     	if (returnNull) {
@@ -54,46 +50,38 @@ public class Config {
     	}
     }
 
-    
-    
     public static String getProperty(String propertyKey) {
     	check(propertyKey);
     	return prop.getProperty(propertyKey);
     }
-    
-    
+
+    private static ConfigException malformed(String propertyKey, String type) {
+    	return new ConfigException("Configuration key '" + propertyKey + "' must be " + type + ", got '"
+    			+ prop.getProperty(propertyKey) + "'.");
+    }
+
     public static int getPropertyInt(String propertyKey) {
-    	int l = -1; 
     	check(propertyKey);
     	try {
-    		l =  Integer.parseInt(prop.getProperty(propertyKey));
-    	} catch (Exception e) {
-    		System.err.println("Error reading configuration key: '" + propertyKey + "' as integer");
-    		e.printStackTrace();
-    		System.exit(-1);
+    		return Integer.parseInt(prop.getProperty(propertyKey).trim());
+    	} catch (NumberFormatException e) {
+    		throw malformed(propertyKey, "an integer");
     	}
-    	//System.out.print("getPropartyInt:" + propertyKey);
-        return l;
-     }
-    
+    }
+
     public static Long getPropertyLong(String propertyKey) {
-    	Long l = -1L; 
     	check(propertyKey);
     	try {
-    		l =  Long.parseLong(prop.getProperty(propertyKey));
-    	} catch (Exception e) {
-    		System.err.println("Error reading configuration key: '" + propertyKey + "' as long");
-    		e.printStackTrace();
-    		System.exit(-1);
+    		return Long.parseLong(prop.getProperty(propertyKey).trim());
+    	} catch (NumberFormatException e) {
+    		throw malformed(propertyKey, "an integer");
     	}
-    	//System.out.print("getPropartyLong:" + propertyKey);
-        return l;
-     }
-    
+    }
+
     /**
      * Returns the float value of an optional property, or {@code defaultValue}
      * when the property is not defined. A defined but malformed value is still
-     * a fatal configuration error, like every other typed getter.
+     * a configuration error, like every other typed getter.
      * @param propertyKey The property name.
      * @param defaultValue The value to use when the key is absent.
      * @return The parsed value or the default.
@@ -106,47 +94,39 @@ public class Config {
     }
 
     public static Float getPropertyFloat(String propertyKey) {
-    	float l = -1.0f; 
     	check(propertyKey);
     	try {
-    		l =  Float.parseFloat(prop.getProperty(propertyKey));
-    	} catch (Exception e) {
-    		System.err.println("Error reading configuration key: '" + propertyKey + "' as float");
-    		e.printStackTrace();
-    		System.exit(-1);
+    		return Float.parseFloat(prop.getProperty(propertyKey).trim());
+    	} catch (NumberFormatException e) {
+    		throw malformed(propertyKey, "a number");
     	}
-    	//System.out.println("getPropartyFloat:" + propertyKey);
-        return l;
-     }
- 
+    }
 
     public static Double getPropertyDouble(String propertyKey) {
-    	double l = -1.0; 
     	check(propertyKey);
     	try {
-    		l =  Double.parseDouble(prop.getProperty(propertyKey));
-    	} catch (Exception e) {
-    		System.err.println("Error reading configuration key: '" + propertyKey + "' as double");
-    		e.printStackTrace();
-    		System.exit(-1);
+    		return Double.parseDouble(prop.getProperty(propertyKey).trim());
+    	} catch (NumberFormatException e) {
+    		throw malformed(propertyKey, "a number");
     	}
-    	//System.out.println("getPropartyDouble: " + propertyKey);
-        return l;
-     }
-    
+    }
+
+	/**
+	 * @throws ConfigException Unless the value is {@code true} or {@code false} (any case). The
+	 *         lenient {@link Boolean#parseBoolean} would read a misspelt {@code ture} as false.
+	 */
 	public static boolean getPropertyBoolean(String propertyKey) {
-		boolean b = false;
 		check(propertyKey);
-		try {
-			b = Boolean.parseBoolean(prop.getProperty(propertyKey));
-		} catch (Exception e) {
-			System.err.println("Error reading configuration key: '" + propertyKey + "' as boolean");
-			e.printStackTrace();
-			System.exit(-1);
+		String value = prop.getProperty(propertyKey).trim();
+		if (value.equalsIgnoreCase("true")) {
+			return true;
 		}
-		return b;
+		if (value.equalsIgnoreCase("false")) {
+			return false;
+		}
+		throw malformed(propertyKey, "true or false");
 	}
-	
+
 	public static String getPropertyString(String propertyKey) {
 		return(prop.getProperty(propertyKey,null));
 	}

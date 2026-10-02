@@ -4,6 +4,8 @@ A run is configured by a Java properties file (`-c file.properties`). Command-li
 
 The effective configuration of every run is saved as `Config - <run id>.csv`, and `Provenance - <run id>.json` records the build, command line and input-file hashes.
 
+Configuration is checked before the run starts. A missing required key, a value of the wrong type (including a boolean other than `true`/`false`), an input file that does not exist, or an unknown command-line option stops the run with a one-line message and exit code 2. A key that the simulator does not read is reported as a warning, with the closest known key when it looks like a typo (`worlkoad.targetTransaction` → `workload.targetTransaction`). Keys of earlier versions that have no effect (`net.propagationTime`, `sim.maxTransactions`, `node.createMaliciousNode`, `tangle.*`, ...) are listed in one note.
+
 ## Simulation
 
 | Key | Default | Meaning |

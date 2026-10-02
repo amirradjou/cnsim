@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import ca.yorku.cmg.cnsim.engine.Config;
+import ca.yorku.cmg.cnsim.engine.ConfigException;
 import ca.yorku.cmg.cnsim.engine.ConfigInitializer;
 import ca.yorku.cmg.cnsim.engine.Debug;
 import ca.yorku.cmg.cnsim.engine.NetworkSamplerFactory;
@@ -36,8 +37,13 @@ public class BitcoinMainDriver {
 
     public static void main(String[] args) {
         //run simulation with the given configuration for n times
-        BitcoinMainDriver b = new BitcoinMainDriver();
-        b.run(args);
+        try {
+            new BitcoinMainDriver().run(args);
+        } catch (ConfigException e) {
+            // A mistake in the configuration or command line: the message says which key or file.
+            System.err.println("cnsim: " + e.getMessage());
+            System.exit(2);
+        }
     }
 
 
@@ -52,8 +58,7 @@ public class BitcoinMainDriver {
         try{
             ConfigInitializer.initialize(args);
         } catch (IOException e){
-            e.printStackTrace();
-            System.exit(1);
+            throw new ConfigException(e.getMessage(), e);
         }
 
         
@@ -147,8 +152,10 @@ public class BitcoinMainDriver {
                     sampler,
                     s
             ));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the node sampler: " + e.getMessage(), e);
         }
 
         //Develop sampler 2: Network Sampler
@@ -174,8 +181,10 @@ public class BitcoinMainDriver {
                             //(Config.hasProperty("workload.sampler.seed.updateTransaction") ? Config.getPropertyLong("workload.sampler.seed.updateTransaction") : null),
                             sampler,
                             s));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the transaction sampler: " + e.getMessage(), e);
         }
             
         
@@ -235,6 +244,8 @@ public class BitcoinMainDriver {
         AbstractNetwork net;
         try {
             net = NetworkFactory.createNetwork(ns, sampler);
+        } catch (IllegalArgumentException e) {
+            throw new ConfigException("Could not create the network: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new IllegalStateException("Could not create the network: " + e.getMessage(), e);
         }
@@ -285,8 +296,10 @@ public class BitcoinMainDriver {
             
             // Add remaining transactions to workload
             ts.appendTransactions(Config.getPropertyLong("workload.numTransactions"));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the workload: " + e.getMessage(), e);
         }
 
 

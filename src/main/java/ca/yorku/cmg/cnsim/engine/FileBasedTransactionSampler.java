@@ -23,9 +23,7 @@ public class FileBasedTransactionSampler extends AbstractTransactionSampler {
     	try {
 			LoadTransactionWorkload();
 		} catch (Exception e) {
-			//e.printStackTrace();
-			System.err.println("Error loading workload: " + e.getMessage());
-			System.exit(-1);
+			throw new ConfigException("Cannot load workload file " + transactionsFilePath + ": " + e.getMessage(), e);
 		}
     }
  
@@ -35,9 +33,7 @@ public class FileBasedTransactionSampler extends AbstractTransactionSampler {
     	try {
 			LoadTransactionWorkload();
 		} catch (Exception e) {
-			//e.printStackTrace();
-			System.err.println("Error loading workload: " + e.getMessage());
-			System.exit(-1);
+			throw new ConfigException("Cannot load workload file " + transactionsFilePath + ": " + e.getMessage(), e);
 		}
     }
     
@@ -71,8 +67,7 @@ public class FileBasedTransactionSampler extends AbstractTransactionSampler {
 				}
 			}
 		} catch (IOException e) {
-			System.err.println("Error loading workload: no such file or directory.");
-			System.exit(-1);
+			throw new ConfigException("Cannot read workload file " + transactionsFilePath + ": " + e.getMessage(), e);
 			//e.printStackTrace();
 		}
 		if (hasHeaders) lineCount--;

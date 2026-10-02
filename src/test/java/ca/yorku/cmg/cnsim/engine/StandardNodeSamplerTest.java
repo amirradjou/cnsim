@@ -27,12 +27,7 @@ class StandardNodeSamplerTest {
 
 		System.out.print("Current directory" + System.getProperty("user.dir"));
 		
-        try{
-            ConfigInitializer.initialize(args);
-        } catch (IOException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
+        ConfigInitializer.initialize(args); // a configuration problem fails the test instead of exiting
 		
 		s0 = new Sampler();
 

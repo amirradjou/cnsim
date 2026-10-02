@@ -213,7 +213,7 @@ public class BitcoinNode extends Node {
 			BitcoinReporter.reportBlockEvent(sim.getSimID(), Simulation.currTime,
 					System.currentTimeMillis() - Simulation.sysStartTime, getID(), newTip.getID(),
 					parent == null ? -1 : parent.getID(), newTip.getHeight(), "{}",
-					"Reorg: " + r.abandoned().size() + " block(s) abandoned, " + restored + " tx restored",
+					"Reorg: " + r.abandoned().size() + " block(s) abandoned; " + restored + " tx restored",
 					-1, -1);
 		}
 	}

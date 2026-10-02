@@ -67,4 +67,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Shellcheck tool and wrapper scripts
-        run: shellcheck run tools/golden/check.sh tools/smoke.sh tools/attacks/*.sh tools/demo.sh
+        run: shellcheck run tools/golden/check.sh tools/smoke.sh tools/attacks/*.sh tools/replicas/*.sh tools/demo.sh

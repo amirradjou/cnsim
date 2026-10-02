@@ -1,0 +1,17 @@
+# Untracked and generated files only: everything git tracks must be in the build context,
+# or the build would see it as deleted and mark the jar as built from a modified tree.
+target/
+out/
+log/
+thesis-log/
+golden-log/
+CNSim/
+/*.rds
+/Finality Simulation-modified.qmd
+.Rhistory
+.idea/
+.graphify/
+tools/finality/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/

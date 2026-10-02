@@ -1,6 +1,9 @@
 package ca.yorku.cmg.cnsim.bitcoin;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
 import java.util.Scanner;
 
@@ -9,6 +12,7 @@ import ca.yorku.cmg.cnsim.engine.ConfigInitializer;
 import ca.yorku.cmg.cnsim.engine.Debug;
 import ca.yorku.cmg.cnsim.engine.NetworkSamplerFactory;
 import ca.yorku.cmg.cnsim.engine.NodeSamplerFactory;
+import ca.yorku.cmg.cnsim.engine.ParallelRunner;
 import ca.yorku.cmg.cnsim.engine.Profiling;
 import ca.yorku.cmg.cnsim.engine.Sampler;
 import ca.yorku.cmg.cnsim.engine.Simulation;
@@ -21,6 +25,7 @@ import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
 import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.Node;
 import ca.yorku.cmg.cnsim.engine.node.NodeSet;
+import ca.yorku.cmg.cnsim.engine.reporter.Provenance;
 import ca.yorku.cmg.cnsim.engine.reporter.ReportEventFactory;
 import ca.yorku.cmg.cnsim.engine.reporter.Reporter;
 import ca.yorku.cmg.cnsim.engine.transaction.Transaction;
@@ -37,8 +42,8 @@ public class BitcoinMainDriver {
 
 
     private void run(String[] args) {
-    	
-        System.out.println("CNSim ver");
+        Instant startedAt = Instant.now();
+        System.out.println("CNSim " + Provenance.describeBuild());
                 
         System.out.println("  * Setting up environment:");
     	System.out.println("  * Current directory: " + System.getProperty("user.dir"));
@@ -57,12 +62,30 @@ public class BitcoinMainDriver {
         BitcoinReporter.reportStructureEvents(Config.getPropertyBoolean("reporter.reportStructureEvents"));
         
         
-        // Get the number of simulations to run
+        // Get the number of simulations to run, the first simulation ID (a run can be one slice
+        // of a larger one) and the number of processes to spread them over.
         int numSimulations = Config.getPropertyInt("sim.numSimulations");
+        int firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
+        int parallelism = Config.hasProperty("sim.parallelism") ? Config.getPropertyInt("sim.parallelism") : 1;
 
+        if (parallelism > 1 && numSimulations > 1) {
+            NodeSamplerFactory.printReplicaNote();
+            try {
+                ParallelRunner.run(args, BitcoinMainDriver.class, Paths.get(Reporter.getRunPath()),
+                        firstSimID, numSimulations, parallelism);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while waiting for the simulations", e);
+            }
+            BitcoinReporter.flushConfig();
+            Provenance.write(args, startedAt);
+            return;
+        }
 
         // SIM SCOPE STARTS HERE
-        for (int simID = 1; simID <= numSimulations; simID++) {
+        for (int simID = firstSimID; simID < firstSimID + numSimulations; simID++) {
             runSingleSimulation(simID);
         }
         // SIM SCOPE ENDS HERE
@@ -76,6 +99,7 @@ public class BitcoinMainDriver {
         BitcoinReporter.flushBeliefReport();
         BitcoinReporter.flushErrorReport();
         BitcoinReporter.flushConfig();
+        Provenance.write(args, startedAt);
     }
 
     private void runSingleSimulation(int simID) {
@@ -173,6 +197,15 @@ public class BitcoinMainDriver {
         ns.addNodes(Config.getPropertyInt("net.numOfHonestNodes"));
         ns.setNodeFactory(new BitcoinNodeFactory("Malicious", s, ns));
         ns.addNodes(Config.getPropertyInt("net.numOfMaliciousNodes"));
+        // Optional selfish miner (net.numOfSelfishNodes, node.selfishRatio); see SelfishMiningBehavior.
+        int numSelfish = Config.hasProperty("net.numOfSelfishNodes") ? Config.getPropertyInt("net.numOfSelfishNodes") : 0;
+        if (numSelfish > 1) {
+            throw new IllegalArgumentException("net.numOfSelfishNodes: one selfish miner is supported, got " + numSelfish);
+        }
+        if (numSelfish == 1) {
+            ns.setNodeFactory(new BitcoinNodeFactory("Selfish", s, ns));
+            ns.addNodes(1);
+        }
 
         // Block production: proof of work (difficulty given or derived from
         // pow.targetBlockInterval) or a proof-of-stake slot lottery. See ConsensusSetup.

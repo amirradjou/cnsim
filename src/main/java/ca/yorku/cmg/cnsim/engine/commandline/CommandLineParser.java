@@ -17,11 +17,15 @@ import java.util.*;
  * - Node seed list
  * - Switch times list
  * - Network seed
+ * - Any other configuration key, with {@code --set key=value} (repeatable)
  * <p>
  * Usage: cnsim [options]
  */
 public final class CommandLineParser {
     private final Map<String, Field> optionFields = new HashMap<>();
+
+    /** Overrides any configuration key: {@code --set key=value}, repeatable. */
+    public static final String SET_OPTION = "--set";
 
     @CommandLineOption(
             key = "config.file",
@@ -39,6 +43,14 @@ public final class CommandLineParser {
             aliases = {"-m", "--sims"}
     )
     private Long numSimulations;
+
+    @CommandLineOption(
+            key = "sim.parallelism",
+            description = "Run the simulations in this many processes (default 1)",
+            argument = "<long>",
+            aliases = {"-p", "--parallel"}
+    )
+    private Long parallelism;
 
     @CommandLineOption(
             key = "workload.sampler.file",
@@ -155,6 +167,15 @@ public final class CommandLineParser {
     private void parseArguments(String[] args, Properties properties) {
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
+            if (arg.equals(SET_OPTION)) {
+                String assignment = getArgumentValue(args, ++i);
+                int eq = assignment.indexOf('=');
+                if (eq <= 0) {
+                    throw new IllegalArgumentException(SET_OPTION + " expects key=value, got '" + assignment + "'");
+                }
+                properties.setProperty(assignment.substring(0, eq).trim(), assignment.substring(eq + 1).trim());
+                continue;
+            }
             Field field = optionFields.get(arg);
             if (field != null) {
                 String value = getArgumentValue(args, ++i);
@@ -246,6 +267,7 @@ public final class CommandLineParser {
             }
         }
 
+        System.out.printf("  %-"+maxOptionLength+"s  %s%n", SET_OPTION + " <key=value>", "Override any configuration key (repeatable)");
         System.out.printf("  %-"+maxOptionLength+"s  %s%n", "-h, --help", "Print this help message");
     }
 

@@ -476,6 +476,21 @@ public abstract class Node implements INode {
 	}
     
 	/**
+	 * Replaces the node's pending validation event, if any, with one drawn afresh from
+	 * {@code time}. Block production is memoryless (exponential mining intervals, independent
+	 * slot lotteries), so the new draw has the same distribution; the point is that what happens
+	 * next depends only on the random stream from now on.
+	 * @param time The current simulation time.
+	 */
+	public void redrawPendingValidation(long time) {
+		if (!isMining || !(nextValidationEvent instanceof Event_ContainerValidation pending) || pending.ignoreEvt()) {
+			return;
+		}
+		pending.ignoreEvt(true);
+		startMining(scheduleValidationEvent(pending.getContainer(), time));
+	}
+
+	/**
 	 * See {@linkplain INode#event_NodeCompletesValidation(ITxContainer, long)}
 	 * TODO: prospectiveMiningCycles must be removed from here, they are inaccurate, in cases of cancellation.
 	 */

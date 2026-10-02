@@ -33,6 +33,9 @@ jobs:
       - name: Golden run (simulation output must match tools/golden/expected.sha256)
         run: tools/golden/check.sh
 
+      - name: Golden run split over 2 processes (must match the same hashes)
+        run: tools/golden/check.sh --parallel 2
+
       - name: Smoke-run every shipped config
         run: tools/smoke.sh
 
@@ -44,10 +47,24 @@ jobs:
           path: target/cnsim-*.jar
           if-no-files-found: error
 
+  finality-tool:
+    name: Finality analysis tool (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/finality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Tests
+        run: uv run pytest
+
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Shellcheck tool and wrapper scripts
-        run: shellcheck run tools/golden/check.sh tools/smoke.sh
+        run: shellcheck run tools/golden/check.sh tools/smoke.sh tools/attacks/*.sh tools/demo.sh

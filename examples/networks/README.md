@@ -29,7 +29,7 @@ Shared settings:
 - **Overlay:** each node opens 8 outbound links (10 for Cardano), which is how Bitcoin Core connects. Links average 50 Mbps and 60 ms one-way latency. Relays forward after 20 ms (200 ms for Ethereum Classic, whose blocks must be executed first).
 - **Empty blocks:** `bitcoin.minValueToMine = -1` lets nodes mine empty blocks, as real miners do. With the default, block production pauses whenever the mempool is empty, which stretches block intervals on low-traffic chains.
 - **Reorgs:** `bitcoin.reorg.restoreTransactions = true` returns transactions of abandoned blocks to the mempool after a reorg.
-- **Replica independence:** the nodes are the same in every simulation, and each simulation switches to its own random stream at t = 0, before any mining starts (`node.sampler.seedUpdateTimes = {0}`).
+- **Replica independence:** the nodes are the same in every simulation, and each simulation switches to its own random stream at t = 0, before any mining starts (`node.sampler.seedUpdateTimes = {0}`). A later switch time t gives the simulations a common history up to t, which is how the CNSim method studies a transaction from its arrival on.
 
 ## Measured
 

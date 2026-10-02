@@ -112,6 +112,23 @@ public class ConfigTest {
     }
 
     @Test
+    public void missingAndMalformedKeysAreConfigErrors() {
+        Config.init("src/test/resources/application.properties");
+        ConfigException missing = assertThrows(ConfigException.class, () -> Config.getPropertyInt("no.such.key"));
+        assertEquals("Missing configuration key 'no.such.key'.", missing.getMessage());
+        Config.prop.setProperty("test.notANumber", "12x");
+        ConfigException malformed = assertThrows(ConfigException.class, () -> Config.getPropertyLong("test.notANumber"));
+        assertEquals("Configuration key 'test.notANumber' must be an integer, got '12x'.", malformed.getMessage());
+        Config.prop.setProperty("test.flag", "ture");
+        assertThrows(ConfigException.class, () -> Config.getPropertyBoolean("test.flag"), "a misspelt boolean is an error, not false");
+        Config.prop.setProperty("test.flag", " TRUE ");
+        assertTrue(Config.getPropertyBoolean("test.flag"));
+        Config.prop.setProperty("test.padded", "42   ");
+        assertEquals(42, Config.getPropertyInt("test.padded"), "trailing spaces in a properties file are ignored");
+        assertThrows(ConfigException.class, () -> Config.init("no/such/file.properties"));
+    }
+
+    @Test
     public void testConfigTxtNumTransactionsRetrieval() {
         // Check whether the retrieved value from config.txt matches the expected value
         Config.init("src/test/resources/application.properties"); // initialize the configuration file

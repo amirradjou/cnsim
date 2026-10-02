@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import ca.yorku.cmg.cnsim.engine.Config;
+import ca.yorku.cmg.cnsim.engine.ConfigException;
 import ca.yorku.cmg.cnsim.engine.ConfigInitializer;
 import ca.yorku.cmg.cnsim.engine.Debug;
 import ca.yorku.cmg.cnsim.engine.NetworkSamplerFactory;
@@ -36,8 +37,13 @@ public class BitcoinMainDriver {
 
     public static void main(String[] args) {
         //run simulation with the given configuration for n times
-        BitcoinMainDriver b = new BitcoinMainDriver();
-        b.run(args);
+        try {
+            new BitcoinMainDriver().run(args);
+        } catch (ConfigException e) {
+            // A mistake in the configuration or command line: the message says which key or file.
+            System.err.println("cnsim: " + e.getMessage());
+            System.exit(2);
+        }
     }
 
 
@@ -52,8 +58,7 @@ public class BitcoinMainDriver {
         try{
             ConfigInitializer.initialize(args);
         } catch (IOException e){
-            e.printStackTrace();
-            System.exit(1);
+            throw new ConfigException(e.getMessage(), e);
         }
 
         
@@ -65,7 +70,7 @@ public class BitcoinMainDriver {
         // Get the number of simulations to run, the first simulation ID (a run can be one slice
         // of a larger one) and the number of processes to spread them over.
         int numSimulations = Config.getPropertyInt("sim.numSimulations");
-        int firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
+        firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
         int parallelism = Config.hasProperty("sim.parallelism") ? Config.getPropertyInt("sim.parallelism") : 1;
 
         if (parallelism > 1 && numSimulations > 1) {
@@ -100,6 +105,30 @@ public class BitcoinMainDriver {
         BitcoinReporter.flushErrorReport();
         BitcoinReporter.flushConfig();
         Provenance.write(args, startedAt);
+    }
+
+    /** ID of the first simulation this process runs; one-off messages are printed for it. */
+    private int firstSimID = 1;
+
+    /**
+     * Prints the share of the total hash power (or stake) each attacker actually has, which can
+     * differ from the share intended: with node.maliciousPowerByRatio = false it depends on the
+     * node list as much as on node.maliciousHashPower.
+     */
+    private static void reportAttackerShares(NodeSet ns) {
+        double total = 0;
+        for (INode n : ns.getNodes()) {
+            total += n.getHashPower();
+        }
+        for (INode n : ns.getNodes()) {
+            NodeBehaviorStrategy strategy = ((BitcoinNode) n).getBehaviorStrategy();
+            String kind = strategy instanceof MaliciousNodeBehavior ? "double-spend attacker"
+                    : strategy instanceof SelfishMiningBehavior ? "selfish miner" : null;
+            if (kind != null && total > 0) {
+                System.out.printf("    Node %d (%s) has %.2f%% of the hash power%n", n.getID(), kind,
+                        100 * n.getHashPower() / total);
+            }
+        }
     }
 
     private void runSingleSimulation(int simID) {
@@ -147,8 +176,10 @@ public class BitcoinMainDriver {
                     sampler,
                     s
             ));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the node sampler: " + e.getMessage(), e);
         }
 
         //Develop sampler 2: Network Sampler
@@ -174,8 +205,10 @@ public class BitcoinMainDriver {
                             //(Config.hasProperty("workload.sampler.seed.updateTransaction") ? Config.getPropertyLong("workload.sampler.seed.updateTransaction") : null),
                             sampler,
                             s));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the transaction sampler: " + e.getMessage(), e);
         }
             
         
@@ -214,13 +247,16 @@ public class BitcoinMainDriver {
             for (INode node : ns.getNodes()) {
                 ((BitcoinNode) node).setOperatingDifficulty(difficulty);
             }
-            if (simID == 1) {
+            if (simID == firstSimID) {
                 System.out.printf("    Difficulty %.6g for a mean block interval of %s ms%n",
                         difficulty, Config.getPropertyString(ConsensusSetup.TARGET_INTERVAL_KEY));
             }
         }
-        if (s.getLeaderElection() != null && simID == 1) {
+        if (s.getLeaderElection() != null && simID == firstSimID) {
             System.out.println("    Block production: " + s.getLeaderElection().describe());
+        }
+        if (simID == firstSimID) {
+            reportAttackerShares(ns);
         }
 
         
@@ -235,6 +271,8 @@ public class BitcoinMainDriver {
         AbstractNetwork net;
         try {
             net = NetworkFactory.createNetwork(ns, sampler);
+        } catch (IllegalArgumentException e) {
+            throw new ConfigException("Could not create the network: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new IllegalStateException("Could not create the network: " + e.getMessage(), e);
         }
@@ -285,8 +323,10 @@ public class BitcoinMainDriver {
             
             // Add remaining transactions to workload
             ts.appendTransactions(Config.getPropertyLong("workload.numTransactions"));
+        } catch (ConfigException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ConfigException("Could not create the workload: " + e.getMessage(), e);
         }
 
 

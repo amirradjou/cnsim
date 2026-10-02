@@ -70,7 +70,7 @@ public class BitcoinMainDriver {
         // Get the number of simulations to run, the first simulation ID (a run can be one slice
         // of a larger one) and the number of processes to spread them over.
         int numSimulations = Config.getPropertyInt("sim.numSimulations");
-        int firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
+        firstSimID = Config.hasProperty("sim.firstSimID") ? Config.getPropertyInt("sim.firstSimID") : 1;
         int parallelism = Config.hasProperty("sim.parallelism") ? Config.getPropertyInt("sim.parallelism") : 1;
 
         if (parallelism > 1 && numSimulations > 1) {
@@ -105,6 +105,30 @@ public class BitcoinMainDriver {
         BitcoinReporter.flushErrorReport();
         BitcoinReporter.flushConfig();
         Provenance.write(args, startedAt);
+    }
+
+    /** ID of the first simulation this process runs; one-off messages are printed for it. */
+    private int firstSimID = 1;
+
+    /**
+     * Prints the share of the total hash power (or stake) each attacker actually has, which can
+     * differ from the share intended: with node.maliciousPowerByRatio = false it depends on the
+     * node list as much as on node.maliciousHashPower.
+     */
+    private static void reportAttackerShares(NodeSet ns) {
+        double total = 0;
+        for (INode n : ns.getNodes()) {
+            total += n.getHashPower();
+        }
+        for (INode n : ns.getNodes()) {
+            NodeBehaviorStrategy strategy = ((BitcoinNode) n).getBehaviorStrategy();
+            String kind = strategy instanceof MaliciousNodeBehavior ? "double-spend attacker"
+                    : strategy instanceof SelfishMiningBehavior ? "selfish miner" : null;
+            if (kind != null && total > 0) {
+                System.out.printf("    Node %d (%s) has %.2f%% of the hash power%n", n.getID(), kind,
+                        100 * n.getHashPower() / total);
+            }
+        }
     }
 
     private void runSingleSimulation(int simID) {
@@ -223,13 +247,16 @@ public class BitcoinMainDriver {
             for (INode node : ns.getNodes()) {
                 ((BitcoinNode) node).setOperatingDifficulty(difficulty);
             }
-            if (simID == 1) {
+            if (simID == firstSimID) {
                 System.out.printf("    Difficulty %.6g for a mean block interval of %s ms%n",
                         difficulty, Config.getPropertyString(ConsensusSetup.TARGET_INTERVAL_KEY));
             }
         }
-        if (s.getLeaderElection() != null && simID == 1) {
+        if (s.getLeaderElection() != null && simID == firstSimID) {
             System.out.println("    Block production: " + s.getLeaderElection().describe());
+        }
+        if (simID == firstSimID) {
+            reportAttackerShares(ns);
         }
 
         

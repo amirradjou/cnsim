@@ -82,6 +82,7 @@ public class BitcoinReporter extends Reporter {
 			String blockEvt,
 			double difficulty, //Difficulty: the difficulty under which the block was validated.
 			double cycles) { //Cycles: the number of cycles dedicated to validate the block.
+		// The log is unquoted CSV: a comma in the event description would split it into two fields.
 		if (BitcoinReporter.reportBlockEvents)
 		blockLog.add(simID + "," +
 				simTime + "," + 
@@ -91,7 +92,7 @@ public class BitcoinReporter extends Reporter {
 				parentID + "," +
 				height + "," +
 				txInvolved + "," +
-				blockEvt + "," + //AppendedToChain, AddedAsOrphan, RemovedFromOrphan
+				blockEvt.replace(',', ';') + "," + //AppendedToChain, AddedAsOrphan, RemovedFromOrphan
 				difficulty + "," +
 				cycles
 					);

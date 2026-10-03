@@ -48,6 +48,17 @@ if [ -z "$run_dir" ]; then
     exit 1
 fi
 
+# Every row of a CSV log must have as many fields as its header, or CSV readers choke on it.
+# Config is exempt: its values may contain commas (split its rows on the first comma).
+for file in "$run_dir"/*.csv; do
+    case $(basename "$file") in Config\ -\ *) continue ;; esac
+    bad=$(awk -F, 'NR == 1 { n = NF; next } NF != n { print "line " NR " has " NF " fields, the header " n; exit }' "$file")
+    if [ -n "$bad" ]; then
+        echo "golden: $(basename "$file"): $bad" >&2
+        exit 1
+    fi
+done
+
 # Strip what legitimately differs between runs and machines: wall-clock
 # columns, and the output directory, config path and process count in the
 # Config dump.

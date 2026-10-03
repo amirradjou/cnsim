@@ -550,7 +550,7 @@ public class MaliciousNodeBehavior implements NodeBehaviorStrategy {
                 b.getID(),
                 ((b.getParent() == null) ? -1 : b.getParent().getID()), b.getHeight(),
                 b.printIDs(";"),
-                "Attack abandoned (hidden " + hiddenChain.size() + ", public growth " + publicChainGrowthSinceAttack + ")",
+                "Attack abandoned (hidden " + hiddenChain.size() + "; public growth " + publicChainGrowthSinceAttack + ")",
                 b.getValidationDifficulty(),
                 b.getValidationCycles());
         isAttackInProgress = false;

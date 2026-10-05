@@ -1,6 +1,7 @@
 package ca.yorku.cmg.cnsim.engine.reporter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,5 +46,15 @@ class LogStreamTest {
 		log.add("y");
 		log.close();
 		assertEquals(List.of("h", "x", "y"), Files.readAllLines(f));
+	}
+
+	@Test
+	void createsTheDirectoryOnlyWhenTheFirstLineArrives() throws IOException {
+		Path run = dir.resolve("out").resolve("2026.10.05 12.00.00");
+		LogStream log = new LogStream(run.resolve("BlockLog.csv").toString(), "h");
+		assertFalse(Files.exists(run));
+		log.add("x");
+		log.close();
+		assertEquals(List.of("h", "x"), Files.readAllLines(run.resolve("BlockLog.csv")));
 	}
 }

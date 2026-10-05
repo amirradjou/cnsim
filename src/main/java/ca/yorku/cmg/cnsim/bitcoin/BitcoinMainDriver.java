@@ -63,6 +63,7 @@ public class BitcoinMainDriver {
 
         
         //INitialize Bitcoin reporter
+        BitcoinReporter.createRunDirectory();
         BitcoinReporter.reportBlockEvents(Config.getPropertyBoolean("reporter.reportBlockEvents"));
         BitcoinReporter.reportStructureEvents(Config.getPropertyBoolean("reporter.reportStructureEvents"));
         

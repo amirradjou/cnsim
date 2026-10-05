@@ -4,6 +4,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * One output log, written to disk as lines arrive instead of being kept in memory until the end
@@ -66,6 +68,10 @@ public final class LogStream {
 	private void open() throws IOException {
 		if (out != null) {
 			return;
+		}
+		Path parent = Path.of(file).toAbsolutePath().getParent();
+		if (parent != null) {
+			Files.createDirectories(parent);
 		}
 		// After close(), further lines are appended rather than replacing the file.
 		out = new BufferedWriter(new FileWriter(file, closed), 1 << 16);

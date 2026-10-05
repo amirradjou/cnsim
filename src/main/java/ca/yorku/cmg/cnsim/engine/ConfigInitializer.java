@@ -33,7 +33,12 @@ public class ConfigInitializer {
      */
     public static void initialize(String[] args) throws IOException {
         CommandLineParser parser = new CommandLineParser();
-        Properties commandLineProperties = parser.parse(args);
+        Properties commandLineProperties;
+        try {
+            commandLineProperties = parser.parse(args);
+        } catch (IllegalArgumentException e) {
+            throw new ConfigException(e.getMessage() + " (see --help)", e);
+        }
 
         if (commandLineProperties == null) {
             return; // Help was printed or parsing failed
@@ -41,7 +46,7 @@ public class ConfigInitializer {
 
         String configFile = parser.getConfigFile();
         if (configFile == null) {
-            throw new IllegalArgumentException("Config file is required");
+            throw new ConfigException("Config file is required");
         }
         String resolvedConfigFile = validateFileExists(configFile, "Config file");
 
@@ -60,6 +65,11 @@ public class ConfigInitializer {
 
         // Initialize Config prop with the properties
         Config.prop.putAll(properties);
+
+        // Keys nothing reads are most likely typos; say so instead of silently ignoring them.
+        for (String message : ConfigKeys.report(Config.prop.stringPropertyNames())) {
+            System.out.println("    " + message);
+        }
      
         Reporter.reportEvents(Config.getPropertyBoolean("reporter.reportEvents"));
         Reporter.reportTransactions(Config.getPropertyBoolean("reporter.reportTransactions"));
@@ -77,10 +87,12 @@ public class ConfigInitializer {
      * @throws IllegalArgumentException If the configuration is invalid.
      */
     private static void validateConfig(Properties properties) throws IOException {
-        // Validate file paths and resolve them if relative
-        //validateFileExists(properties, "workload.sampler.file", "Workload file");
-        //validateFileExists(properties, "net.sampler.file", "Network file");
-        //validateFileExists(properties, "node.sampler.file", "Node file");
+        // Input files must exist before the run starts rather than fail it halfway. Relative paths
+        // are checked against the working directory, as the samplers will open them.
+        requireReadableFile(properties, "workload.sampler.file", "Workload file");
+        requireReadableFile(properties, "net.sampler.file", "Network file");
+        requireReadableFile(properties, "node.sampler.file", "Node file");
+        requireReadableFile(properties, "net.topology.file", "Topology file");
 
         // Validate dependency between switch times and seed list
         validatePropertyDependency(properties, "node.sampler.seedUpdateTimes", "node.sampler.seed",
@@ -93,6 +105,18 @@ public class ConfigInitializer {
         validateIntProperty(properties, "sim.numSimulations", 1, 1);
     }
 
+    private static void requireReadableFile(Properties properties, String key, String description) throws IOException {
+        String value = properties.getProperty(key);
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        Path path = Paths.get(value.trim());
+        if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
+            throw new IOException(description + " not found or not readable: " + value.trim() + " (" + key
+                    + ", relative to " + Paths.get("").toAbsolutePath() + ")");
+        }
+    }
+
     private static void validateIntProperty(Properties properties, String key, int defaultValue, int minValue) {
         String value = properties.getProperty(key);
         int result;
@@ -103,10 +127,10 @@ public class ConfigInitializer {
             try {
                 result = Integer.parseInt(value.trim());
                 if (result < minValue) {
-                    throw new IllegalArgumentException(key + " must be at least " + minValue + ", but was " + result);
+                    throw new ConfigException(key + " must be at least " + minValue + ", but was " + result);
                 }
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(key + " must be a valid integer, but was '" + value + "'");
+                throw new ConfigException(key + " must be a valid integer, but was '" + value + "'");
             }
         }
         properties.setProperty(key, Long.toString(result));
@@ -125,7 +149,7 @@ public class ConfigInitializer {
 
         // Validate the directory name
         if (!isValidDirectoryName(dir)) {
-            throw new IllegalArgumentException("Invalid directory name: " + dir);
+            throw new ConfigException("Invalid directory name: " + dir);
         }
 
         properties.setProperty(key, dir);
@@ -136,7 +160,7 @@ public class ConfigInitializer {
         String value2 = properties.getProperty(key2);
 
         if ((value1 != null && !value1.isEmpty()) && (value2 == null || value2.isEmpty())) {
-            throw new IllegalArgumentException(errorMessage);
+            throw new ConfigException(errorMessage);
         }
     }
 
@@ -153,12 +177,9 @@ public class ConfigInitializer {
         return validateFileExistsInternal(null, null, filePath, fileDescription);
     }
 
-    private static void validateFileExists(Properties properties, String key, String fileDescription) throws IOException {
-        validateFileExistsInternal(properties, key, properties.getProperty(key), fileDescription);
-    }
     private static String validateFileExistsInternal(Properties properties, String key, String filePath, String fileDescription) throws IOException {
         if (filePath == null || filePath.trim().isEmpty()) {
-            throw new IllegalArgumentException(fileDescription + " path is null or empty");
+            throw new ConfigException(fileDescription + " path is null or empty");
         }
 
         Path currentDir = Paths.get(".").toAbsolutePath().normalize();

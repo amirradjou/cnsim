@@ -27,6 +27,10 @@ public class ConfigInitializerTest {
     private static final String WORKLOAD_NAME = "workload.txt";
     private static final String NETWORK_NAME = "network.txt";
     private static final String NODE_NAME = "node.txt";
+    /** initialize() reads the reporter switches, so every test config sets them. */
+    private static final String REPORTER_KEYS = "reporter.reportEvents=false\nreporter.reportTransactions=false\n"
+            + "reporter.reportNodes=false\nreporter.reportNetEvents=false\nreporter.reportBeliefs=false\n"
+            + "sim.output.directory=" + Paths.get("target", "config-initializer-test-out") + "/\n";
 
     private Path testResourcesPath;
     private Path configPath;
@@ -51,6 +55,7 @@ public class ConfigInitializerTest {
             writer.write("workload.sampler.file=" + workloadPath + "\n");
             writer.write("net.sampler.file=" + networkPath + "\n");
             writer.write("node.sampler.file=" + nodePath + "\n");
+            writer.write(REPORTER_KEYS);
         }
 
         // Create empty files for other resources
@@ -147,6 +152,7 @@ public class ConfigInitializerTest {
             writer.write("net.sampler.file=" + networkPath + "\n");
             writer.write("node.sampler.file=" + nodePath + "\n");
             writer.write("node.sampler.seedUpdateTimes={10,20}\n");
+            writer.write(REPORTER_KEYS);
         }
 
         String[] args = {"-c", configPath.toString()};

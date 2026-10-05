@@ -85,8 +85,8 @@ public class StandardTransactionSampler extends AbstractTransactionSampler {
     	} while ((result < minSize) && (tries < maxTries));
     	
     	if (tries == maxTries) {
-    		System.err.println("Failed to generate appropriate transaction size after " + tries + " tries. Please check workload.txSizeMean and workload.txSizeSD.");
-    		System.exit(-1);
+    		throw new ConfigException("No transaction size of at least " + minSize + " bytes after " + tries
+    				+ " draws; check workload.txSizeMean and workload.txSizeSD.");
     	}
     	
         return(result);

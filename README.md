@@ -81,6 +81,8 @@ Each run writes a directory `<sim.output.directory>/<run id>/`:
 | `Input`, `Nodes`, `NetLog`, `EventLog` | Transaction arrivals, node attributes, link throughputs, every event |
 | `Config`, `Provenance` (.json), `ErrorLog` (.txt) | Effective configuration; commit, command line and input hashes; errors |
 
+Every column and event type is described in [docs/output-format.md](docs/output-format.md).
+
 ## Reproducing the thesis
 
 The code that produced the thesis and CCS26 figures is at tag [`thesis-v1.0-artifact`](https://github.com/amirradjou/cnsim/tree/thesis-v1.0-artifact). [examples/thesis/README.md](examples/thesis/README.md) maps every figure to its configuration and script.

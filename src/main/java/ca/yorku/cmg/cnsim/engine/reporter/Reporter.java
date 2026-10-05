@@ -1,8 +1,11 @@
 package ca.yorku.cmg.cnsim.engine.reporter;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -67,22 +70,17 @@ public class Reporter {
 	
 	
 	static {
-		root = Config.getPropertyString("sim.output.directory");
+		// ConfigInitializer fills in the documented default; code that reaches the reporter
+		// without it (unit tests) gets the same one rather than a "null<run id>" directory.
+		root = Config.hasProperty("sim.output.directory") ? Config.getPropertyString("sim.output.directory") : "./log/";
 
 		//ID the run
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd HH.mm.ss");  
 		LocalDateTime now = LocalDateTime.now();
 		runId = dtf.format(now);
 		path = root + runId + "/";
-		new File(path).mkdirs();
-		FileWriter writer;
-		try {
-			writer = new FileWriter(root + "LatestFileName.txt");
-			writer.write(runId + "\n");
-			writer.close();
-		} catch (IOException e) {e.printStackTrace();}
-		
-		//Prepare the reporting structures
+
+		//Prepare the reporting structures (each log creates its file on its first line)
 		eventLog = new LogStream(path + "EventLog - " + runId + ".csv", "SimID, EventID, SimTime, SysTime, EventType, Node, Object");
 		inputTxLog = new LogStream(path + "Input - " + runId + ".csv", "SimID, TxID, Size (bytes), Value (coins), ArrivalTime (ms)");
 		nodeLog = new LogStream(path + "Nodes - " + runId + ".csv", "SimID, NodeID, HashPower (GH/s), ElectricPower (W), ElectricityCost (USD/kWh), TotalCycles");
@@ -93,6 +91,20 @@ public class Reporter {
 	
 	public static String getRunId() {
 		return(runId);
+	}
+
+	/**
+	 * Creates the run directory and records the run ID in {@code LatestFileName.txt} in the output
+	 * directory. The driver calls this when a run starts; nothing else creates the directory
+	 * eagerly, so code that loads the reporter without running anything leaves no trace.
+	 */
+	public static void createRunDirectory() {
+		try {
+			Files.createDirectories(Paths.get(path));
+			Files.writeString(Paths.get(root + "LatestFileName.txt"), runId + "\n", StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new UncheckedIOException("Cannot create the run directory " + path, e);
+		}
 	}
 
 	/** @return The run directory (ends with a separator). */

@@ -90,7 +90,7 @@ The code that produced the thesis and CCS26 figures is at tag [`thesis-v1.0-arti
 Two findings bear on those results:
 
 - **The attacker bug above.** In the ~30% attacker scenario the attack succeeded in 20% of 30 simulations, where the block race allows 11%.
-- **Seeds never diverge.** The thesis configurations switch to per-simulation seeds only at the end of the run, so their replicas share the mining randomness. The simulator now warns about this.
+- **Replicas are not independent.** The thesis configurations switch to per-simulation seeds only at the end of the run, so the 30 simulations of a run share their mining randomness. In the base scenario this makes 30 replicas worth 8 to 15 independent ones for time to finality, and the thesis seed is a fast one ([examples/thesis/replica-independence.md](examples/thesis/replica-independence.md)). The simulator now warns about this.
 
 ## Repository layout
 
@@ -100,6 +100,7 @@ src/main/java/ca/yorku/cmg/cnsim/bitcoin   Nakamoto consensus: blocks, blockchai
 examples/networks/   chain presets          examples/attacks/   attack experiments
 tools/finality/      analysis (Python)      tools/attacks/      attack analysis scripts
 tools/golden/        determinism check      tools/smoke.sh      runs every shipped config
+tools/replicas/      replica-independence check
 src/main/resources/  thesis configurations
 ```
 

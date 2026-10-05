@@ -87,6 +87,10 @@ The `propagationTime_*` file names are historical: `net.propagationTime` is
 no longer read by the engine, and what these two configs vary is the
 end-to-end throughput, which is how the thesis describes them.
 
+## Replica independence
+
+The 30 simulations of a run in either config set are not independent replicas. The node sampler switches to a per-simulation seed only at `sim.terminate.atTime`, so it never does, and all 30 draw their mining intervals from seed 444. In the base scenario this makes 30 replicas worth 8 to 15 independent ones for the time to finality of a sample transaction. Seed 444 also mines 17% more blocks than the configured difficulty gives. [replica-independence.md](replica-independence.md) has the measurements. They come from `tools/replicas/seed_sweep.sh`, and the document says how to run new experiments with independent replicas (`--set "node.sampler.seedUpdateTimes={0}"`).
+
 ## Figure provenance
 
 Run IDs are the `<run id>` directory names under the scenario output

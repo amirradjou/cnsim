@@ -20,13 +20,13 @@ node.sampler.seedUpdateTimes = {16800000}
 sim.terminate.atTime = 16800000
 ```
 
-The node sampler starts every simulation on seed 444 and would switch to a per-simulation seed (222 + simulation ID) at t = 16,800,000 ms. That is the moment the run ends, so the switch never takes effect. The workload seed does change with every simulation, so the simulations differ in their transactions but draw their mining intervals from the same stream. A mining interval is `−ln(u) · difficulty / hash power` for the next number u in that stream. The simulator warns about such configs at startup.
+The node sampler starts every simulation on seed 444 and would switch to a per-simulation seed (then 222 + simulation ID) at t = 16,800,000 ms. That is the moment the run ends, so the switch never takes effect. The workload seed does change with every simulation, so the simulations differ in their transactions but draw their mining intervals from the same stream. A mining interval is `−ln(u) · difficulty / hash power` for the next number u in that stream. The simulator warns about such configs at startup.
 
 The simulations are still not copies of each other. When the miners start, and in what order the draws are made, depends on the transactions, so the same sequence of numbers u gets assigned to different miners at different times. The question is how much dependence survives that reshuffling.
 
 ## Method
 
-All runs use the base config on the current engine (master at `dec01e4`). It reproduces the thesis base run exactly: the block intervals of its first 10 simulations match the 309 values in `tools/validation-rq1/clean-data/simulation_times.csv` one for one, and all 30 simulations give the same total, 916.
+All runs use the base config on the engine at `dec01e4`, which seeds simulations as the thesis runs did. Later, per-simulation seeds were changed from seed + simulation ID to a scrambled derivation, because consecutive seeds gave nearly the same first draw (see the changelog). That changes these configs' per-simulation workload streams, so on current master the individual numbers below come out differently. The `dec01e4` engine reproduces the thesis base run exactly: the block intervals of its first 10 simulations match the 309 values in `tools/validation-rq1/clean-data/simulation_times.csv` one for one, and all 30 simulations give the same total, 916.
 
 - **Block timing.** Ten simulations with block events, as configured (seed 444) and with independent replicas (`seedUpdateTimes = {0}`). For each pair of simulations: the share of one simulation's mined blocks that have a mined block of the other simulation within one second.
 - **Run-to-run variation.** Ten runs of 30 simulations for each seeding:
@@ -95,7 +95,7 @@ The RQ1 block-interval comparison used this run. Its 916 intervals include many 
 
 ## Recommendation
 
-- Keep the thesis configs as they are, so that every figure stays reproducible from them.
+- Keep the thesis configs as they are, so that every figure stays reproducible from them with the engine at tag `thesis-v1.0-artifact`.
 - For new runs, including any re-run of the thesis scenarios for the CCS26 text, switch to independent replicas:
 
   ```sh
@@ -120,4 +120,4 @@ uv run --project tools/finality python tools/replicas/replicas.py analyse replic
 - the ICC, design effect and permutation p for blocks mined and for each transaction's time to finality;
 - the clustering of non-final simulations.
 
-The tables of run-to-run variation and the pooled values above come from `analyse` with its defaults (4000 permutations, random seed 1). The block-time overlaps, the interval coverage and the RQ1 interval comparison were computed from the same runs with short one-off scripts.
+To get the exact numbers above, run the sweep with the engine at `dec01e4`; current master seeds simulations differently and gives different individual values. The tables of run-to-run variation and the pooled values above come from `analyse` with its defaults (4000 permutations, random seed 1). The block-time overlaps, the interval coverage and the RQ1 interval comparison were computed from the same runs with short one-off scripts.

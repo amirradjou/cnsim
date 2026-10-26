@@ -55,7 +55,7 @@ Configuration is checked before the run starts. A missing required key, a value 
 | `workload.sampleTransaction` | *required* | `{id, id, ...}`: transactions whose belief is reported (the BeliefLog). |
 | `workload.sampler.file` | – | CSV workload (`id,time,value,size,node`) instead of generated transactions. |
 | `workload.sampler.seed` | – | Seed of the workload random stream. |
-| `workload.sampler.seed.updateSeed` | false | Switch to seed + simulation ID once transaction `updateTransaction` exists, so workloads differ per simulation. |
+| `workload.sampler.seed.updateSeed` | false | Switch to a per-simulation seed derived from this seed and the simulation ID once transaction `updateTransaction` exists, so workloads differ per simulation. |
 | `workload.sampler.seed.updateTransaction` | 0 | See above. |
 
 ## Nodes
@@ -66,7 +66,7 @@ Configuration is checked before the run starts. A missing required key, a value 
 | `net.numOfHonestNodes` | *required* | Honest nodes. |
 | `node.sampler.file` | – | CSV (`id,hashpower,electricPower,electricityCost`) for the first nodes; the rest are sampled. |
 | `node.sampler.seed` | – | `{s0, s1, ...}`: seeds of the node random stream, which draws node attributes and mining intervals. |
-| `node.sampler.updateSeedFlags` | – | `{b0, b1, ...}`: whether each seed gets the simulation ID added. |
+| `node.sampler.updateSeedFlags` | – | `{b0, b1, ...}`: whether each seed is replaced by a per-simulation seed derived from it and the simulation ID. A per-simulation seed is the simulation ID-th output of SplitMix64 started at the configured seed; it used to be seed + simulation ID, which gave every simulation nearly the same first draw. |
 | `node.sampler.seedUpdateTimes` | – | `{t1, ...}`: times at which the stream moves to the next seed. Simulations share their history until they switch to a per-simulation seed and evolve independently afterwards (pending mining events are redrawn at the switch). `{0}` makes them independent from the start; the CNSim method switches at the arrival of the transaction under study. A switch at or after `sim.terminate.atTime` means the simulations never diverge; the run warns about it. |
 | `node.electricPowerMean`, `node.electricPowerSD`, `node.electricCostMean`, `node.electricCostSD` | *required* | Energy attributes (reported, not used by consensus). |
 
@@ -99,7 +99,7 @@ Configuration is checked before the run starts. A missing required key, a value 
 | `net.latencyMean`, `net.latencySD` | 0 | Normal distribution (truncated at 0) of one-way link latency. |
 | `net.sampler.file` | – | End-to-end throughput matrix (`from,to,bps,time`) instead of sampled throughputs; complete topology only. |
 | `net.sampler.seed` | – | Seed of the network random stream (link properties, overlay shape). |
-| `net.sampler.seed.updateSeed` | – | Add the simulation ID to it. |
+| `net.sampler.seed.updateSeed` | – | Use a per-simulation seed derived from it and the simulation ID. |
 | `net.partition.nodes` | – | Nodes on one side of a network partition, e.g. `{1,2,3}`; all other nodes are on the other side. |
 | `net.partition.start`, `net.partition.end` | *required with `net.partition.nodes`* | When the partition starts and heals (ms). |
 

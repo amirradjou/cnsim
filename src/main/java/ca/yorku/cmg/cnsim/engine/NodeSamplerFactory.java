@@ -76,8 +76,8 @@ public class NodeSamplerFactory {
 
 	/**
 	 * Mining intervals are drawn from the node sampler's random stream. Simulations share their
-	 * history until that stream switches to a seed with its update flag set (seed + simulation
-	 * ID), and evolve independently from then on (pending mining events are redrawn at the
+	 * history until that stream switches to a seed with its update flag set (a per-simulation
+	 * seed), and evolve independently from then on (pending mining events are redrawn at the
 	 * switch). Sharing the history up to the arrival of the transaction under study is the CNSim
 	 * method's design; never switching is not. Returns a warning when the switch never comes
 	 * before the run ends, a note when it comes after t = 0, and null otherwise.

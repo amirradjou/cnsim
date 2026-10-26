@@ -57,7 +57,7 @@ check() {
     fi
     if command -v shellcheck > /dev/null 2>&1; then
         step "shellcheck"
-        shellcheck cnsim tools/golden/check.sh tools/smoke.sh tools/attacks/*.sh tools/replicas/*.sh tools/demo.sh
+        shellcheck cnsim tools/*.sh tools/*/*.sh
     else
         step "shellcheck: skipped (not installed)"
     fi

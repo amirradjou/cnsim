@@ -4,14 +4,36 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Properties;
 import java.util.Random;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Per-simulation seeds must give each simulation a stream of its own from the first draw. */
 class PerSimulationSeedTest {
 
 	private static final int SIMS = 400;
+
+	private Properties savedProps;
+	private boolean savedInitialized;
+
+	@BeforeEach
+	void saveConfig() {
+		savedProps = new Properties();
+		savedProps.putAll(Config.prop);
+		savedInitialized = Config.initialized;
+		Config.prop.remove(SeedManager.DERIVATION_KEY);
+		Config.initialized = true;
+	}
+
+	@AfterEach
+	void restoreConfig() {
+		Config.prop.clear();
+		Config.prop.putAll(savedProps);
+		Config.initialized = savedInitialized;
+	}
 
 	/** How many of the simulations' first draws fall in each tenth of [0, 1). */
 	private static int[] firstDrawDeciles(java.util.function.IntToLongFunction seedOf) {
@@ -52,5 +74,14 @@ class PerSimulationSeedTest {
 		assertEquals(new Random(444).nextLong(), r.nextLong(), "an unflagged seed is used as given");
 		m.updateSeed(r);
 		assertEquals(new Random(SeedManager.perSimulation(222, 5)).nextLong(), r.nextLong());
+	}
+
+	@Test
+	void legacyDerivationKeepsTheThesisSeeds() {
+		assertEquals(SeedManager.perSimulation(222, 3), SeedManager.derive(222, 3), "scrambled by default");
+		Config.prop.setProperty(SeedManager.DERIVATION_KEY, "legacy");
+		assertEquals(225, SeedManager.derive(222, 3));
+		Config.prop.setProperty(SeedManager.DERIVATION_KEY, "sequential");
+		org.junit.jupiter.api.Assertions.assertThrows(ConfigException.class, () -> SeedManager.derive(222, 3));
 	}
 }

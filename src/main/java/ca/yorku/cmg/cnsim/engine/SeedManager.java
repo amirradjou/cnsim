@@ -27,6 +27,25 @@ public class SeedManager {
 	 * nextDouble() lies between 0.675 and 0.767), so every simulation started with nearly the same
 	 * draw. Scrambled seeds make the simulations' streams independent from the first draw on.
 	 */
+	public static final String DERIVATION_KEY = "sim.seedDerivation";
+
+	/**
+	 * The per-simulation seed for this run: {@link #perSimulation} by default, or base + simID
+	 * with {@code sim.seedDerivation = legacy}, which the thesis configs set so that they keep
+	 * reproducing the thesis runs.
+	 */
+	public static long derive(long base, int simID) {
+		String mode = Config.hasProperty(DERIVATION_KEY) ? Config.getPropertyString(DERIVATION_KEY).trim() : "scrambled";
+		switch (mode) {
+			case "scrambled":
+				return perSimulation(base, simID);
+			case "legacy":
+				return base + simID;
+			default:
+				throw new ConfigException(DERIVATION_KEY + " must be scrambled or legacy, but was '" + mode + "'");
+		}
+	}
+
 	public static long perSimulation(long base, int simID) {
 		long z = base + simID * 0x9E3779B97F4A7C15L;
 		z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
@@ -65,7 +84,7 @@ public class SeedManager {
 		//Debug.p("       Seed to be updated?: " + seedUpdateFlags[currentIndex]);
 		//Debug.p("       Seed to be updated?: " +  (seedArray[currentIndex] + (seedUpdateFlags[currentIndex] ? simID : 0)));
 
-		long newSeed = seedUpdateFlags[currentIndex] ? perSimulation(seedArray[currentIndex], simID) : seedArray[currentIndex];
+		long newSeed = seedUpdateFlags[currentIndex] ? derive(seedArray[currentIndex], simID) : seedArray[currentIndex];
 		currentIndex = (currentIndex + 1) % seedArray.length;
 		return newSeed;
 	}

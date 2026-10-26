@@ -16,7 +16,7 @@ public class StandardTransactionSampler extends AbstractTransactionSampler {
 	
     public void updateSeed() {
     	if ((seedUpdateEnabled) && (seedSwitchTx < Transaction.currID - 1)) {
-    		currentSeed = SeedManager.perSimulation(this.initialSeed, this.simID);
+    		currentSeed = SeedManager.derive(this.initialSeed, this.simID);
     		super.random.setSeed(currentSeed);
     		seedUpdateEnabled = false;
     	}

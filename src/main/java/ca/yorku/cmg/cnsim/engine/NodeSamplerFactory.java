@@ -105,7 +105,8 @@ public class NodeSamplerFactory {
 		if (independentFrom < 0 || independentFrom >= terminateAt) {
 			return "Warning: the node sampler never switches to a per-simulation seed before sim.terminate.atTime, "
 					+ "so every simulation uses the same mining randomness and the replicas are not independent. "
-					+ "Set node.sampler.seedUpdateTimes = {0} (with updateSeedFlags {false,true}) to make them independent.";
+					+ "Set node.sampler.seedUpdateTimes = {0} (with updateSeedFlags {false,true} and sim.seedDerivation = scrambled, "
+					+ "the default) to make them independent.";
 		}
 		return "Note: the simulations share their history until t = " + independentFrom
 				+ " ms, when the node sampler switches to a per-simulation seed, and evolve independently from then on.";

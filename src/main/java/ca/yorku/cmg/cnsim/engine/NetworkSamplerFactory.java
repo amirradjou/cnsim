@@ -5,7 +5,7 @@ public class NetworkSamplerFactory {
 		AbstractNetworkSampler netSampler;
 		netSampler = new StandardNetworkSampler(outerSampler);
 		if (seed != null) {
-			netSampler.setSeed(seedFlag ? SeedManager.perSimulation(seed, sim.getSimID()) : seed);
+			netSampler.setSeed(seedFlag ? SeedManager.derive(seed, sim.getSimID()) : seed);
 		}
 		return(netSampler);
     }

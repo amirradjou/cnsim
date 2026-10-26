@@ -1,7 +1,7 @@
 [project]
 name = "cnsim-finality"
 version = "0.1.0"
-description = "Finality estimates from CNSim belief logs (the CNSim paper's estimators)"
+description = "Finality estimates (the CNSim paper's estimators), belief curves and fork statistics from CNSim runs"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []

@@ -17,7 +17,7 @@ flowchart LR
 | `engine` | `Simulation` (event loop), `Sampler` and the node / transaction / network samplers, `SeedManager`, `ParallelRunner`, `Config` |
 | `engine.event` | Events: transaction arrival and propagation, container (block) validation and arrival, belief reports, seed switches |
 | `engine.node` | `Node` (mining state, propagation to peers), `NodeSet` |
-| `engine.network` | `RandomEndToEndNetwork` and `FileBasedEndToEndNetwork` (every pair connected), `OverlayNetwork` + `Topology` (peer-to-peer graphs), `NetworkFactory` |
+| `engine.network` | `RandomEndToEndNetwork` and `FileBasedEndToEndNetwork` (every pair connected), `OverlayNetwork` + `Topology` (peer-to-peer graphs), `Partition` (messages across a cut wait until it heals), `NetworkFactory` |
 | `engine.consensus` | `LeaderElection` hook, `SlotLotteryElection` (proof of stake), `ConsensusSetup` (difficulty from target interval) |
 | `engine.transaction` | `Transaction`, `TransactionGroup` (pools and blocks, with an incremental fee-rate order and ID index) |
 | `engine.reporter` | `Reporter` with one `LogStream` per log, `Provenance` |

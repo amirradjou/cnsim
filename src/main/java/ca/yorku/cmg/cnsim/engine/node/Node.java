@@ -343,7 +343,8 @@ public abstract class Node implements INode {
 	                assert(totalDelay > 0);
 	            }
 	            
-	            Event_ContainerArrival e = new Event_ContainerArrival(txc, n, time + totalDelay);
+	            long arrival = sim.getNetwork().getArrivalTime(this.getID(), n.getID(), time, totalDelay);
+	            Event_ContainerArrival e = new Event_ContainerArrival(txc, n, arrival);
 	            sim.schedule(e);
 	        }
 	    }
@@ -379,7 +380,8 @@ public abstract class Node implements INode {
 	                assert(totalDelay > 0);
 	            }
 	            
-	            Event_TransactionPropagation e = new Event_TransactionPropagation(t, n, time + totalDelay);
+	            long arrival = sim.getNetwork().getArrivalTime(this.getID(), n.getID(), time, totalDelay);
+	            Event_TransactionPropagation e = new Event_TransactionPropagation(t, n, arrival);
 	            sim.schedule(e);
 	        }
 	    }

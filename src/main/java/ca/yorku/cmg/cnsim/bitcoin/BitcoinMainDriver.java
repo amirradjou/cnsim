@@ -19,6 +19,7 @@ import ca.yorku.cmg.cnsim.engine.TransactionSamplerFactory;
 import ca.yorku.cmg.cnsim.engine.consensus.ConsensusSetup;
 import ca.yorku.cmg.cnsim.engine.network.AbstractNetwork;
 import ca.yorku.cmg.cnsim.engine.network.NetworkFactory;
+import ca.yorku.cmg.cnsim.engine.network.Partition;
 import ca.yorku.cmg.cnsim.engine.node.AbstractNodeFactory;
 import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.Node;
@@ -126,6 +127,19 @@ public class BitcoinMainDriver {
                         100 * n.getHashPower() / total);
             }
         }
+    }
+
+    /** Prints which nodes a partition cuts off, with their share of the hash power, and when. */
+    private static void reportPartition(Partition p, NodeSet ns) {
+        double total = 0, side = 0;
+        for (INode n : ns.getNodes()) {
+            total += n.getHashPower();
+            if (p.getSide().contains(n.getID())) {
+                side += n.getHashPower();
+            }
+        }
+        System.out.printf("    Partition: nodes %s (%.2f%% of the hash power) cut off from the others from %d to %d ms%n",
+                p.getSide(), total > 0 ? 100 * side / total : 0, p.getStart(), p.getEnd());
     }
 
     private void runSingleSimulation(int simID) {
@@ -270,6 +284,9 @@ public class BitcoinMainDriver {
         }
 
         s.setNetwork(net);
+        if (simID == firstSimID && net.getPartition() != null) {
+            reportPartition(net.getPartition(), ns);
+        }
 
         //
         //

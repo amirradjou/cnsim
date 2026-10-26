@@ -23,8 +23,11 @@ public abstract class AbstractNetwork {
 	 */
 	protected float[][] latency;
 
+	/** The partition the network goes through, or {@code null} for none. */
+	protected Partition partition;
+
 	/**
-	 * Constructor. 
+	 * Constructor.
 	 * @param ns A NodeSet object representing the nodes of the network.
 	 * @throws Exception 
 	 */
@@ -87,6 +90,23 @@ public abstract class AbstractNetwork {
 			latency = new float[Net.length][Net.length];
 		}
 		latency[origin][destination] = ms;
+	}
+
+	public void setPartition(Partition partition) {
+		this.partition = partition;
+	}
+
+	/** @return The partition the network goes through, or {@code null} for none. */
+	public Partition getPartition() {
+		return partition;
+	}
+
+	/**
+	 * When a message from origin to destination, sent at sendTime with the given total delay,
+	 * arrives: sendTime + delay, unless a partition holds it back until it heals.
+	 */
+	public long getArrivalTime(int origin, int destination, long sendTime, long delay) {
+		return (partition == null) ? sendTime + delay : partition.arrivalTime(origin, destination, sendTime, delay);
 	}
 
 	/**

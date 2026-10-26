@@ -29,7 +29,7 @@ public final class ConfigKeys {
 			"net.sampler.file", "net.sampler.seed", "net.sampler.seed.updateSeed", "net.throughputMean",
 			"net.throughputSD", "net.latencyMean", "net.latencySD", "net.topology", "net.topology.degree",
 			"net.topology.edgeProbability", "net.topology.file", "net.topology.hopDelay",
-			"net.topology.rewireProbability",
+			"net.topology.rewireProbability", "net.partition.nodes", "net.partition.start", "net.partition.end",
 			"node.sampler.file", "node.sampler.seed", "node.sampler.seedUpdateTimes", "node.sampler.updateSeedFlags",
 			"node.electricPowerMean", "node.electricPowerSD", "node.electricCostMean", "node.electricCostSD",
 			"node.maliciousPowerByRatio", "node.maliciousRatio", "node.maliciousHashPower", "node.selfishRatio",

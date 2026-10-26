@@ -38,3 +38,4 @@ The thesis and CCS26 results were produced with the code at tag `thesis-v1.0-art
 - **About 28× faster**: one simulation of the thesis base config takes 9.5 s instead of 269 s, with byte-identical output. The mempool keeps its fee-rate order and an ID index between receipts; chain lookups use ID sets.
 - **Logs stream to disk** instead of being held in memory until the end, so memory no longer grows with the number of simulations.
 - The build requires JDK 21 or newer (enforced), runs tests in a forked JVM, and no longer pulls in JUnit 4.
+- **`./cnsim`** replaces the `comp`, `do`, `do-all`, `run` and `test` wrappers: `build`, `run` (builds the jar if it is missing), `test`, `check` (everything CI checks) and `demo`. It checks the JDK version up front and works from any directory.

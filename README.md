@@ -107,11 +107,14 @@ src/main/resources/  thesis configurations
 ## Development
 
 ```bash
+./cnsim check           # everything below, as CI runs it
 mvn verify              # unit tests (JDK 21+)
 tools/golden/check.sh   # the golden run must match tools/golden/expected.sha256
 tools/smoke.sh          # every shipped config, shortened
 cd tools/finality && uv run pytest && uv run ruff check .
 ```
+
+`./cnsim build`, `./cnsim run <args>` (builds the jar if it is missing) and `./cnsim test` cover the everyday commands; `./cnsim` alone lists them.
 
 A change that alters simulation results must update the golden hashes (`tools/golden/check.sh --update`) and say why in the commit.
 

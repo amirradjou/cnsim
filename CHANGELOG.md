@@ -25,6 +25,7 @@ The thesis and CCS26 results were produced with the code at tag `thesis-v1.0-art
 - Configurable attack thresholds (`bitcoin.attack.minChainLength/maxChainLength`); attack abandonment is logged.
 - **`cnsim-finality`** (`tools/finality/`): the CNSim paper's estimators (finality, time to finality, aggregate belief), tested on the paper's own example.
 - `tools/demo.sh`: double-spend finality by attacker share in one command.
+- **`cnsim-finality forks`**: stale-block rate, fork rate, longest stale branch and unplaced blocks per run, measured against the chain every node agrees on; with `--delay D`, the fork rate the closed form predicts. `examples/forks/` and `tools/forks/fork_sweep.sh` check the network and fork model against that closed form: within the 95% intervals up to D/T = 0.3.
 - **Provenance** file with every run: commit, uncommitted-changes flag, Java version, command line, and input-file hashes.
 - `--set key=value` command-line overrides.
 - **`--parallel N`**: the simulations of a run in N processes, with merged logs identical to a sequential run's.

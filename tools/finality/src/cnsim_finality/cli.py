@@ -1,8 +1,9 @@
-"""cnsim-finality: finality estimates and belief curves from CNSim runs.
+"""cnsim-finality: finality estimates, belief curves and fork statistics from CNSim runs.
 
     cnsim-finality finality RUN [RUN ...] [--tx 20000,30000] [--threshold 0.9] [--horizon 3600]
     cnsim-finality belief RUN [RUN ...] [--tx 20000] [--step 60] [--horizon 3600]
                           [--csv out.csv] [--plot out.png]
+    cnsim-finality forks RUN [RUN ...] [--delay 2.5] [--json]
 
 RUN is a run directory (the one holding 'BeliefLog - <run id>.csv') or an output directory that
 holds a single run. Several runs are reported side by side (name them with --labels). Times on
@@ -15,11 +16,11 @@ import argparse
 import json
 import math
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import mean, median
 
-from . import logs, metrics
+from . import forks, logs, metrics
 
 
 def _ints(text: str) -> list[int]:
@@ -227,9 +228,98 @@ def _plot(tables, args) -> None:
     print(f"wrote {args.plot}", file=sys.stderr)
 
 
+def fork_summary(path: Path, args) -> dict:
+    """Pooled fork statistics of one run, plus the per-simulation ones."""
+    trees, ends = logs.read_structures(path)
+    mined = logs.read_mined(path)
+    power = logs.read_hash_power(path) if args.delay is not None else None
+    if args.delay is not None and power is None:
+        sys.exit(
+            f"--delay needs the Nodes log (reporter.reportNodes = true) for the hash power; none in {path}"
+        )
+    sims, predicted_weighted = [], 0.0
+    for sim in sorted(trees):
+        f = forks.analyse(trees[sim], mined.get(sim, set()) if mined is not None else None)
+        interval_s = ends[sim] / f.mined / 1000 if f.mined else math.nan
+        row = {"simulation": sim, **asdict(f), "stale_rate": f.stale_rate, "mean_interval_s": interval_s}
+        if power is not None:
+            row["predicted_fork_rate"] = forks.predicted_fork_rate(
+                power.get(sim, {}).values(), args.delay, interval_s
+            )
+            predicted_weighted += row["predicted_fork_rate"] * f.settled
+        sims.append(row)
+    total = {k: sum(r[k] for r in sims) for k in ("mined", "settled", "stale", "pending", "forked_heights")}
+    unplaced = None if mined is None else sum(r["unplaced"] for r in sims)
+    stale = metrics.proportion(total["stale"], total["settled"] + total["stale"], args.confidence)
+    fork = metrics.proportion(total["forked_heights"], total["settled"], args.confidence)
+    duration = sum(ends[s] for s in trees) / 1000
+    return {
+        "simulations": len(sims),
+        **total,
+        "unplaced": unplaced,
+        "stale_rate": stale.value,
+        "stale_ci": [stale.low, stale.high],
+        "fork_rate": fork.value,
+        "fork_ci": [fork.low, fork.high],
+        "predicted_fork_rate": predicted_weighted / total["settled"]
+        if power is not None and total["settled"]
+        else None,
+        "mean_interval_s": duration / total["mined"] if total["mined"] else math.nan,
+        "longest_stale_branch": max((r["longest_stale_branch"] for r in sims), default=0),
+        "per_simulation": sims,
+    }
+
+
+def cmd_forks(args) -> int:
+    labels = args.labels.split(",") if args.labels else [Path(p).name for p in args.runs]
+    if len(labels) != len(args.runs):
+        sys.exit(f"{len(labels)} labels for {len(args.runs)} runs")
+    results = []
+    for p, label in zip(args.runs, labels, strict=True):
+        path = logs.resolve_run_dir(Path(p), "StructureLog")
+        results.append((label, path, fork_summary(path, args)))
+    if args.json:
+        doc = {
+            "confidence": args.confidence,
+            "delay_s": args.delay,
+            "runs": [{"label": label, "run": str(path), **summary} for label, path, summary in results],
+        }
+        json.dump(doc, sys.stdout, indent=2)
+        print()
+        return 0
+
+    def pct(x: float) -> str:
+        return "-" if x is None or math.isnan(x) else f"{100 * x:.2f}%"
+
+    def ci(pair) -> str:
+        return "" if math.isnan(pair[0]) else f"[{pct(pair[0])}, {pct(pair[1])}]"
+
+    print(f"{int(args.confidence * 100)}% Wilson intervals; heights and blocks pooled over simulations")
+    width = max(len(label) for label, _, _ in results)
+    head = (
+        f"{'run':<{width}} {'K':>4} {'T':>9} {'mined':>7} {'stale':>6} {'stale rate':>10}  "
+        f"{'interval':<19} {'fork rate':>9}  {'interval':<19}"
+    )
+    print(
+        head + (f" {'predicted':>9}" if args.delay is not None else "") + f" {'longest':>7} {'unplaced':>8}"
+    )
+    for label, _, r in results:
+        line = (
+            f"{label:<{width}} {r['simulations']:>4} {r['mean_interval_s']:>8.1f}s {r['mined']:>7} "
+            f"{r['stale']:>6} {pct(r['stale_rate']):>10}  {ci(r['stale_ci']):<19} "
+            f"{pct(r['fork_rate']):>9}  {ci(r['fork_ci']):<19}"
+        )
+        if args.delay is not None:
+            line += f" {pct(r['predicted_fork_rate']):>9}"
+        unplaced = "-" if r["unplaced"] is None else str(r["unplaced"])
+        print(line + f" {r['longest_stale_branch']:>7} {unplaced:>8}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="cnsim-finality", description="Finality estimates and belief curves from CNSim runs."
+        prog="cnsim-finality",
+        description="Finality estimates, belief curves and fork statistics from CNSim runs.",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -268,6 +358,19 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--plot", help="also draw the curves to this image (needs matplotlib)")
     b.add_argument("--title", help="plot title")
     b.set_defaults(func=cmd_belief)
+
+    k = sub.add_parser("forks", help="stale blocks and fork rate (needs StructureLog)")
+    k.add_argument("runs", nargs="+", metavar="RUN", help="run directory, or an output directory holding one")
+    k.add_argument("--labels", help="names for the runs, comma-separated (default: directory names)")
+    k.add_argument(
+        "--delay",
+        type=float,
+        default=None,
+        help="seconds for a block to reach every node; adds the predicted fork rate (needs the Nodes log)",
+    )
+    k.add_argument("--confidence", type=float, default=0.95, help="confidence level of the intervals")
+    k.add_argument("--json", action="store_true", help="print JSON, with per-simulation rows")
+    k.set_defaults(func=cmd_forks)
     return p
 
 

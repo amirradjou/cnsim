@@ -25,18 +25,18 @@ Measured (20 simulations per share, `selfish_sweep.sh`):
 
 | α | Revenue (95% CI) | R(α, 0) | Measured γ | R(α, γ) |
 |---|---|---|---|---|
-| 0.10 | 0.043 ± 0.004 | 0.036 | 0.08 | 0.041 |
-| 0.20 | 0.139 ± 0.007 | 0.130 | 0.07 | 0.137 |
-| 0.25 | 0.202 ± 0.008 | 0.195 | 0.07 | 0.203 |
-| 0.30 | 0.272 ± 0.009 | 0.273 | 0.07 | 0.281 |
-| 0.33 | 0.320 ± 0.010 | 0.327 | 0.08 | 0.335 |
-| 0.35 | 0.370 ± 0.010 | 0.367 | 0.08 | 0.375 |
-| 0.40 | 0.516 ± 0.011 | 0.484 | 0.08 | 0.490 |
-| 0.45 | 0.630 ± 0.011 | 0.652 | 0.07 | 0.656 |
+| 0.10 | 0.044 ± 0.004 | 0.036 | 0.08 | 0.042 |
+| 0.20 | 0.141 ± 0.007 | 0.130 | 0.08 | 0.138 |
+| 0.25 | 0.207 ± 0.008 | 0.195 | 0.07 | 0.203 |
+| 0.30 | 0.281 ± 0.009 | 0.273 | 0.07 | 0.280 |
+| 0.33 | 0.340 ± 0.010 | 0.327 | 0.08 | 0.335 |
+| 0.35 | 0.371 ± 0.010 | 0.367 | 0.07 | 0.374 |
+| 0.40 | 0.487 ± 0.011 | 0.484 | 0.06 | 0.489 |
+| 0.45 | 0.632 ± 0.011 | 0.652 | 0.09 | 0.657 |
 
-The simulation reproduces the paper's main result: with γ near 0, selfish mining pays only above about α = 1/3 (revenue 0.320 at α = 0.33, 0.370 at α = 0.35). Up to α = 0.35 revenue matches R(α, γ) within about 0.01.
+The simulation reproduces the paper's main result: with γ near 0, selfish mining pays only above about α = 1/3 (revenue 0.281 at α = 0.30, 0.340 at α = 0.33). Up to α = 0.40 revenue matches R(α, γ) within about 0.005.
 
-At 0.40 and 0.45 it is off by about 0.026. Five times longer runs (4 simulations of about 3,000 blocks each) give 0.486 ± 0.011 at α = 0.40 (R = 0.489) and 0.668 ± 0.011 at α = 0.45 (R = 0.656). Two things explain the gap at the standard length:
+At 0.45 it is 0.025 below. Two things bias the measurement at large α:
 
 - the intervals treat blocks as independent, while a long selfish lead correlates many blocks in a row, so the stated intervals are too narrow for large α;
 - blocks still withheld when a run ends are never counted.
@@ -58,12 +58,12 @@ Measured (100 simulations per share, `double_spend_sweep.sh`):
 | q | Success rate (95% CI) | Exact race probability |
 |---|---|---|
 | 0.10 | 0.000 | 0.001 |
-| 0.20 | 0.010 ± 0.020 | 0.023 |
+| 0.20 | 0.030 ± 0.033 | 0.023 |
 | 0.30 | 0.090 ± 0.056 | 0.116 |
-| 0.40 | 0.280 ± 0.088 | 0.344 |
-| 0.45 | 0.440 ± 0.097 | 0.505 |
+| 0.40 | 0.300 ± 0.090 | 0.344 |
+| 0.45 | 0.470 ± 0.098 | 0.505 |
 
-All five are within their intervals. A larger check at q = 0.40, 400 simulations, gives 0.378 ± 0.048.
+All five are within their intervals. A larger check at q = 0.40, 400 simulations, gives 0.347 ± 0.047.
 
 Building this comparison exposed a bug in the attacker. When it mined the target's block itself, it kept two mining events alive and mined at twice its hash rate for the rest of the run. With q = 0.30, 5 of 10 attacks succeeded where the race allows 11.6%. It is fixed; the fix commit has the details.
 

@@ -37,17 +37,17 @@ Shared settings:
 
 | Preset | Mean block interval (± SD across simulations) | Stale blocks | Blocks per simulation | Run time per simulation |
 |---|---|---|---|---|
-| `bitcoin` (4 h) | 606 s ± 93 | 0 % | 24 | 23 s |
-| `bitcoin-cash` (4 h) | 606 s ± 93 | 0 % | 24 | 0.5 s |
-| `litecoin` (2 h) | 153 s ± 8 | 0 % | 46 | 0.9 s |
-| `dogecoin` (1 h) | 60.5 s ± 4.3 | 0 % | 59 | 0.1 s |
-| `zcash` (1.5 h) | 76.2 s ± 5.2 | 0.14 % | 70 | 0.1 s |
-| `ethereum-classic` (30 min) | 13.3 s ± 1.6 | 0.80 % | 137 | 0.1 s |
-| `cardano` (1 h) | 20.2 s ± 2.1 | 2.18 % | 183 | 0.3 s |
+| `bitcoin` (4 h) | 530 s ± 43 | 0 % | 26 | 23 s |
+| `bitcoin-cash` (4 h) | 568 s ± 142 | 0 % | 25 | 0.5 s |
+| `litecoin` (2 h) | 143 s ± 18 | 0 % | 50 | 0.9 s |
+| `dogecoin` (1 h) | 56.8 s ± 4.7 | 0 % | 62 | 0.1 s |
+| `zcash` (1.5 h) | 71.4 s ± 6.6 | 0 % | 74 | 0.1 s |
+| `ethereum-classic` (30 min) | 12.7 s ± 0.7 | 1.06 % | 141 | 0.1 s |
+| `cardano` (1 h) | 18.9 s ± 1.2 | 2.00 % | 190 | 0.3 s |
 
-Bitcoin and Bitcoin Cash have the same target interval and seeds, and mining does not depend on block contents, so their block times coincide; they differ in block size and load. Bitcoin's run time is dominated by its 72,000 transactions, each gossiped to 19 peers.
+Ten simulations are a small sample, and the presets share their seeds, so they share their luck: in this run every preset came out 5 to 12% faster than its target. Over 200 simulations Litecoin averages 150.2 s and Bitcoin Cash 605 s, with Poisson-distributed block counts. Bitcoin and Bitcoin Cash have the same target interval and seeds, but when each miner draws its next interval depends on the transactions, so their block times differ. Bitcoin's run time is dominated by its 72,000 transactions, each gossiped to 19 peers.
 
-"Stale" is the share of decided blocks that did not end up on the chain all nodes agree on (`cd tools/finality && uv run cnsim-finality forks ../../out/<preset>`, which also gives intervals). It is near zero for the proof-of-work presets because blocks reach every node in a fraction of a second, which is small next to their intervals. Cardano's stale blocks come from slot battles: two pools winning the same slot. Ten simulations are few blocks for rates this small: Bitcoin's 0 % of 239 blocks has a 95% upper bound of 1.6 %, so run more simulations to compare with measured stale rates of real chains. [examples/forks](../forks/README.md) checks the fork model against theory.
+"Stale" is the share of decided blocks that did not end up on the chain all nodes agree on (`cd tools/finality && uv run cnsim-finality forks ../../out/<preset>`, which also gives intervals). It is near zero for the proof-of-work presets because blocks reach every node in a fraction of a second, which is small next to their intervals. Cardano's stale blocks come from slot battles: two pools winning the same slot. Ten simulations are few blocks for rates this small: Bitcoin's 0 % of 264 blocks has a 95% upper bound of 1.4 %, so run more simulations to compare with measured stale rates of real chains. [examples/forks](../forks/README.md) checks the fork model against theory.
 
 ## What is and is not modelled
 

@@ -13,7 +13,7 @@ are **not** in git; see "Run logs" at the end.
 ## Build and run
 
 ```sh
-export JAVA_HOME=/path/to/jdk-21-or-newer   # the ./comp, ./do, ./run wrappers assume this is set
+export JAVA_HOME=/path/to/jdk-21-or-newer   # or leave it unset to use the java on PATH
 mvn -B package                               # 101 tests at this tag (86 on the pre-artifact master), produces target/cnsim-0.0.1-SNAPSHOT.jar
 java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c src/main/resources/new-config/thesis.bitcoin.base.properties
 ```

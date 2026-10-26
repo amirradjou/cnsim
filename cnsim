@@ -1,0 +1,81 @@
+#!/bin/bash
+# Build, run and check CNSim.
+#
+#   ./cnsim build [MVN ARGS]   package target/cnsim-0.0.1-SNAPSHOT.jar (with the unit tests;
+#                              add -DskipTests to skip them)
+#   ./cnsim run ARGS...        run the simulator, building the jar first if it is missing, e.g.
+#                              ./cnsim run -c examples/networks/bitcoin.properties --sims 10 --parallel 4
+#   ./cnsim test               run the unit tests
+#   ./cnsim check              what CI checks: unit tests, the golden run (in one and in two
+#                              processes), every shipped config, the finality tool, shellcheck
+#   ./cnsim demo [SIMS]        tools/demo.sh: an attacker's share against its target's finality
+#
+# Paths are relative to the repository. Java comes from $JAVA_HOME when it is set, which must
+# then be a JDK 21 or newer, and from PATH otherwise.
+set -euo pipefail
+
+repo=$(cd "$(dirname "$0")" && pwd)
+jar=$repo/target/cnsim-0.0.1-SNAPSHOT.jar
+java_bin="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+cd "$repo"
+
+usage() {
+    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+# Maven uses the same JAVA_HOME, and fails on a stale one with a far less helpful message.
+require_jdk() {
+    if ! command -v "$java_bin" > /dev/null 2>&1; then
+        echo "cnsim: '$java_bin' is not an executable; point JAVA_HOME at a JDK 21 or newer, or unset it to use the java on PATH" >&2
+        exit 1
+    fi
+    local version
+    version=$("$java_bin" -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java.specification.version = //p')
+    if [ "${version%%.*}" -lt 21 ]; then
+        echo "cnsim: $java_bin is Java $version; CNSim needs 21 or newer" >&2
+        exit 1
+    fi
+}
+
+step() {
+    printf '\n== %s\n' "$*"
+}
+
+check() {
+    step "unit tests"
+    mvn -B -q verify
+    step "golden run"
+    tools/golden/check.sh
+    tools/golden/check.sh --parallel 2
+    step "every shipped config"
+    tools/smoke.sh
+    if command -v uv > /dev/null 2>&1; then
+        step "finality tool"
+        (cd tools/finality && uv run --quiet ruff check . && uv run --quiet ruff format --check . && uv run --quiet pytest -q)
+    else
+        step "finality tool: skipped (uv not found)"
+    fi
+    if command -v shellcheck > /dev/null 2>&1; then
+        step "shellcheck"
+        shellcheck cnsim tools/*.sh tools/*/*.sh
+    else
+        step "shellcheck: skipped (not installed)"
+    fi
+    step "all checks passed"
+}
+
+command=${1:-help}
+[ $# -gt 0 ] && shift
+case $command in
+    build) require_jdk; mvn -B -q package "$@" ;;
+    test) require_jdk; mvn -B -q test ;;
+    run)
+        require_jdk
+        [ -f "$jar" ] || mvn -B -q package -DskipTests
+        exec "$java_bin" -jar "$jar" "$@"
+        ;;
+    check) require_jdk; check ;;
+    demo) require_jdk; exec tools/demo.sh "$@" ;;
+    help | -h | --help) usage ;;
+    *) echo "cnsim: unknown command '$command'" >&2; usage >&2; exit 2 ;;
+esac

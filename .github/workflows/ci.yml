@@ -30,6 +30,9 @@ jobs:
       - name: Build and unit tests
         run: mvn -B -ntp verify
 
+      - name: Tests leave no run output in the checkout
+        run: "! ls -d null* log 2>/dev/null"
+
       - name: Golden run (simulation output must match tools/golden/expected.sha256)
         run: tools/golden/check.sh
 

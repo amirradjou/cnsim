@@ -47,7 +47,7 @@ Shared settings:
 
 Bitcoin and Bitcoin Cash have the same target interval and seeds, and mining does not depend on block contents, so their block times coincide; they differ in block size and load. Bitcoin's run time is dominated by its 72,000 transactions, each gossiped to 19 peers.
 
-"Stale" counts blocks outside node 1's final main chain. It is near zero for the proof-of-work presets because blocks reach every node in a fraction of a second, which is small next to their intervals. Cardano's stale blocks come from slot battles: two pools winning the same slot.
+"Stale" is the share of decided blocks that did not end up on the chain all nodes agree on (`cd tools/finality && uv run cnsim-finality forks ../../out/<preset>`, which also gives intervals). It is near zero for the proof-of-work presets because blocks reach every node in a fraction of a second, which is small next to their intervals. Cardano's stale blocks come from slot battles: two pools winning the same slot. Ten simulations are few blocks for rates this small: Bitcoin's 0 % of 239 blocks has a 95% upper bound of 1.6 %, so run more simulations to compare with measured stale rates of real chains. [examples/forks](../forks/README.md) checks the fork model against theory.
 
 ## What is and is not modelled
 

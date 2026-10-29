@@ -39,7 +39,7 @@ java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c examples/networks/bitcoin.propertie
 |---|---|
 | **Block production** | Proof of work with exponential mining times (difficulty given, or derived from a target block interval); proof of stake as an Ouroboros-Praos-style slot lottery. |
 | **Chains** | Presets for Bitcoin, Bitcoin Cash, Litecoin, Dogecoin, Zcash, Ethereum Classic and Cardano ([examples/networks](examples/networks/README.md)). |
-| **Networks** | Every pair of nodes connected directly (the original model), or a peer-to-peer overlay: random outbound peers as in Bitcoin Core, random regular, Erdős–Rényi, small world, scale free, or your own edge list. Links have their own throughput and latency; relays add a processing delay. |
+| **Networks** | Every pair of nodes connected directly (the original model), or a peer-to-peer overlay: random outbound peers as in Bitcoin Core, random regular, Erdős–Rényi, small world, scale free, or your own edge list. Links have their own throughput and latency; relays add a processing delay. A partition can cut some nodes off for a while ([examples/partitions](examples/partitions/README.md)). |
 | **Consensus** | Longest chain with fee-per-byte block assembly, orphan handling, reorgs (optionally returning abandoned transactions to the pool), and a choice of tie-break (first-seen as in Bitcoin Core). |
 | **Attacks** | A double-spend attacker with a hidden chain (the thesis attack), and selfish mining ([examples/attacks](examples/attacks/README.md)). |
 | **Measurements** | Per-node belief in sample transactions over time; block, structure, transaction, node, network and event logs; a provenance record per run. [Estimated finality, time to finality and belief curves](tools/finality/README.md) with confidence intervals; stale-block and fork rates. |
@@ -52,6 +52,7 @@ All settings are listed in [docs/configuration.md](docs/configuration.md); [docs
 |---|---|
 | Selfish mining vs Eyal and Sirer's revenue formula R(α, γ), with γ measured from the logs | Within ~0.01 up to α = 0.35; reproduces the ~1/3 profitability threshold |
 | Double-spend success vs the exact probability of the block race (dynamic programming over the attacker's rules) | Within the 95% intervals for q = 0.1 to 0.45 (0.378 ± 0.048 vs 0.344 over 400 runs at q = 0.40) |
+| Which side's branch survives a network partition vs the Poisson race ([examples/partitions](examples/partitions/README.md)) | Within the 95% intervals for 10% to 50% of the hash power cut off (0.092 [0.068, 0.125] vs 0.090 at 30%); the longer branch won all 1,893 untied races |
 | Fork rate vs 1 − Σ s·e^(−(1−s)D/T) for a block delay D ([examples/forks](examples/forks/README.md)) | Within the 95% intervals for D/T = 0.01 to 0.3 (8.51% [8.12, 8.93] vs 8.52% at D/T = 0.1); 1.4 points below at 0.49, the expected second-order gap |
 | Mean block interval vs target, every preset | On target (e.g. Litecoin 153 s ± 8 for 150 s; Ethereum Classic 13.3 s for 13 s) |
 | Block counts over 200 simulations | Poisson-consistent (variance/mean 0.89 ± 0.10) |
@@ -100,6 +101,7 @@ src/main/java/ca/yorku/cmg/cnsim/engine    simulation core: events, nodes, netwo
 src/main/java/ca/yorku/cmg/cnsim/bitcoin   Nakamoto consensus: blocks, blockchain, honest / attacker / selfish nodes
 examples/networks/   chain presets          examples/attacks/   attack experiments
 examples/forks/      fork-rate experiment   tools/forks/        fork-rate sweep
+examples/partitions/ partition experiment   tools/partitions/   partition analysis
 tools/finality/      analysis (Python)      tools/attacks/      attack analysis scripts
 tools/golden/        determinism check      tools/smoke.sh      runs every shipped config
 tools/replicas/      replica-independence check

@@ -100,8 +100,12 @@ Configuration is checked before the run starts. A missing required key, a value 
 | `net.sampler.file` | – | End-to-end throughput matrix (`from,to,bps,time`) instead of sampled throughputs; complete topology only. |
 | `net.sampler.seed` | – | Seed of the network random stream (link properties, overlay shape). |
 | `net.sampler.seed.updateSeed` | – | Add the simulation ID to it. |
+| `net.partition.nodes` | – | Nodes on one side of a network partition, e.g. `{1,2,3}`; all other nodes are on the other side. |
+| `net.partition.start`, `net.partition.end` | *required with `net.partition.nodes`* | When the partition starts and heals (ms). |
 
 On an overlay, the delay between two nodes is the fastest store-and-forward path: per hop, latency + size × 8000 / throughput, plus the hop delay at each relay. This is when a message flooded by every node on receipt first arrives.
+
+During a partition, a block or transaction sent from one side to the other arrives when the partition heals, after its usual delay: the sides reconnect and exchange what they missed. Messages within a side, and messages already on the way when the partition starts, are not affected. On an overlay, messages within a side still take the fastest path over the whole overlay. See [examples/partitions](../examples/partitions/README.md).
 
 ## Reporting
 

@@ -1,9 +1,12 @@
 package ca.yorku.cmg.cnsim.engine.network;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import ca.yorku.cmg.cnsim.engine.Config;
 import ca.yorku.cmg.cnsim.engine.Sampler;
+import ca.yorku.cmg.cnsim.engine.node.INode;
 import ca.yorku.cmg.cnsim.engine.node.NodeSet;
 
 /**
@@ -19,13 +22,24 @@ import ca.yorku.cmg.cnsim.engine.node.NodeSet;
  * Overlay keys: {@code net.topology.degree} (default 8), {@code net.topology.edgeProbability},
  * {@code net.topology.rewireProbability} (default 0.1), {@code net.topology.file},
  * {@code net.topology.hopDelay} (ms, default 0). Link latency for any sampled network:
- * {@code net.latencyMean}, {@code net.latencySD} (ms, default 0).
+ * {@code net.latencyMean}, {@code net.latencySD} (ms, default 0). Any network can go through a
+ * {@link Partition} ({@code net.partition.*}).
  */
 public class NetworkFactory {
 
 	public static final String TOPOLOGY_KEY = "net.topology";
 
 	public static AbstractNetwork createNetwork(NodeSet ns, Sampler sampler) throws Exception {
+		AbstractNetwork net = createLinks(ns, sampler);
+		List<Integer> ids = new ArrayList<>();
+		for (INode n : ns.getNodes()) {
+			ids.add(n.getID());
+		}
+		net.setPartition(Partition.fromConfig(ids));
+		return net;
+	}
+
+	private static AbstractNetwork createLinks(NodeSet ns, Sampler sampler) throws Exception {
 		String netFilePath = Config.getPropertyString("net.sampler.file");
 		String kind = topologyKind();
 

@@ -51,7 +51,7 @@ sequenceDiagram
 
 ## Randomness and replicas
 
-All randomness comes from three seeded streams: node (attributes and mining intervals), transaction (workload), network (link properties and overlay shape). `node.sampler.seedUpdateTimes` switches the node stream to a per-simulation seed (seed + simulation ID). Simulations share their history until then and are independent afterwards, because pending mining events are redrawn at the switch. A simulation depends only on its ID, which is why `--parallel` can split a run across processes and still produce the sequential run's logs.
+All randomness comes from three seeded streams: node (attributes and mining intervals), transaction (workload), network (link properties and overlay shape). `node.sampler.seedUpdateTimes` switches the node stream to a per-simulation seed (derived from the seed and the simulation ID, see `SeedManager.perSimulation`). Simulations share their history until then and are independent afterwards, because pending mining events are redrawn at the switch. A simulation depends only on its ID, which is why `--parallel` can split a run across processes and still produce the sequential run's logs.
 
 ## Double-spend attacker
 

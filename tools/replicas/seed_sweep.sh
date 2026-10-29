@@ -6,7 +6,7 @@
 #   configured   node.sampler.seed = {444 + 1000 j, 222}, everything else as in the config
 #                (j = 0 is exactly the thesis seeding)
 #   independent  node.sampler.seed = {444, 222 + 1000 j}, switched to at t = 0, so every
-#                simulation draws from its own seed (222 + 1000 j + simulation ID)
+#                simulation draws from its own seed (derived from 222 + 1000 j and its ID)
 #
 #   tools/replicas/seed_sweep.sh [-c CONFIG] [-r RUNS] [-n SIMS] [-p PROCESSES] [-o OUT] [JAR]
 #

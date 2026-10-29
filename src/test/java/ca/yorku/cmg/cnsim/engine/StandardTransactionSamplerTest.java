@@ -90,7 +90,7 @@ class StandardTransactionSamplerTest {
 			} 
 			
 			if (rounds > (switchTx)) {
-				assertEquals(this.initSeed + this.simID,s.getCurrentSeed(), "where rounds =" + rounds + " and switchTx = " + switchTx);
+				assertEquals(SeedManager.perSimulation(this.initSeed, this.simID),s.getCurrentSeed(), "where rounds =" + rounds + " and switchTx = " + switchTx);
 			} 
 			
 

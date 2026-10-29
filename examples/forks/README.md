@@ -36,17 +36,17 @@ Measured (10 simulations per delay, about 20,000 settled heights each, `fork_swe
 
 | D | D/T | Fork rate (95% CI) | Predicted | Stale rate |
 |---|---|---|---|---|
-| 0.6 s | 0.01 | 0.83% [0.71%, 0.97%] | 0.89% | 0.82% |
-| 1.2 s | 0.02 | 1.64% [1.47%, 1.83%] | 1.77% | 1.63% |
-| 3 s | 0.05 | 4.22% [3.94%, 4.51%] | 4.36% | 4.16% |
-| 6 s | 0.10 | 8.51% [8.12%, 8.93%] | 8.52% | 8.14% |
-| 12 s | 0.20 | 16.45% [15.89%, 17.02%] | 16.32% | 15.12% |
-| 18 s | 0.30 | 23.00% [22.35%, 23.67%] | 23.45% | 20.60% |
-| 30 s | 0.49 | 34.51% [33.72%, 35.30%] | 35.94% | 29.64% |
+| 0.6 s | 0.01 | 0.93% [0.80%, 1.07%] | 0.90% | 0.92% |
+| 1.2 s | 0.02 | 1.79% [1.61%, 1.98%] | 1.80% | 1.78% |
+| 3 s | 0.05 | 4.20% [3.93%, 4.49%] | 4.43% | 4.13% |
+| 6 s | 0.10 | 8.23% [7.85%, 8.64%] | 8.66% | 7.91% |
+| 12 s | 0.20 | 16.11% [15.57%, 16.67%] | 16.58% | 14.93% |
+| 18 s | 0.30 | 23.30% [22.65%, 23.96%] | 23.80% | 20.83% |
+| 30 s | 0.50 | 35.32% [34.53%, 36.11%] | 36.42% | 29.94% |
 
-Up to D/T = 0.3 the prediction lies inside every interval. At D/T = 0.49 the simulation is 1.4 points below it, which is the expected second-order overestimate. The stale rate falls increasingly below the fork rate as D grows, because at long delays a fork is more often followed by another one on the losing branch: the longest stale branch grows from 1 block at D/T = 0.01 to 4 at 0.49.
+The prediction lies inside the intervals for D/T up to 0.05 and at 0.2 and 0.3; at 0.1 it is 0.02 points above the interval. From D/T = 0.05 on the simulation is consistently below the prediction, by 0.2 to 0.5 points and 1.1 at 0.5, which is the direction of the formula's second-order overestimate. The stale rate falls increasingly below the fork rate as D grows, because at long delays a fork is more often followed by another one on the losing branch: the longest stale branch grows from 1 block at D/T = 0.01 to 4 at 0.5.
 
-Caveats: the intervals treat heights as independent, while consecutive heights are slightly correlated. Every delay uses the same seeds, so the rows share their mining randomness: the block interval is 60.67 s in all of them.
+Caveats: the intervals treat heights as independent, while consecutive heights are slightly correlated. Every delay uses the same seeds, so the rows share their mining randomness: the block interval is 59.62 s in all of them.
 
 ## Using it on other runs
 

@@ -22,7 +22,7 @@ public final class ConfigKeys {
 			"config.file",
 			"sim.numSimulations", "sim.terminate.atTime", "sim.maxNodes", "sim.output.directory",
 			"sim.reporting.beliefReportInterval", "sim.reporting.beliefReportOffset", "sim.reporting.window",
-			"sim.initialMiningPoolTransactions", "sim.parallelism", "sim.firstSimID",
+			"sim.initialMiningPoolTransactions", "sim.parallelism", "sim.firstSimID", "sim.seedDerivation",
 			"reporter.reportEvents", "reporter.reportTransactions", "reporter.reportNodes", "reporter.reportNetEvents",
 			"reporter.reportBeliefs", "reporter.reportBlockEvents", "reporter.reportStructureEvents",
 			"net.numOfNodes", "net.numOfHonestNodes", "net.numOfMaliciousNodes", "net.numOfSelfishNodes",

@@ -20,7 +20,7 @@ node.sampler.seedUpdateTimes = {16800000}
 sim.terminate.atTime = 16800000
 ```
 
-The node sampler starts every simulation on seed 444 and would switch to a per-simulation seed (222 + simulation ID) at t = 16,800,000 ms. That is the moment the run ends, so the switch never takes effect. The workload seed does change with every simulation, so the simulations differ in their transactions but draw their mining intervals from the same stream. A mining interval is `−ln(u) · difficulty / hash power` for the next number u in that stream. The simulator warns about such configs at startup.
+The node sampler starts every simulation on seed 444 and would switch to a per-simulation seed (222 + simulation ID; the configs set `sim.seedDerivation = legacy`) at t = 16,800,000 ms. That is the moment the run ends, so the switch never takes effect. The workload seed does change with every simulation, so the simulations differ in their transactions but draw their mining intervals from the same stream. A mining interval is `−ln(u) · difficulty / hash power` for the next number u in that stream. The simulator warns about such configs at startup.
 
 The simulations are still not copies of each other. When the miners start, and in what order the draws are made, depends on the transactions, so the same sequence of numbers u gets assigned to different miners at different times. The question is how much dependence survives that reshuffling.
 
@@ -100,8 +100,10 @@ The RQ1 block-interval comparison used this run. Its 916 intervals include many 
 
   ```sh
   java -jar target/cnsim-0.0.1-SNAPSHOT.jar -c src/main/resources/new-config/thesis.bitcoin.base.properties \
-      --parallel 6 --set "node.sampler.seedUpdateTimes={0}"
+      --parallel 6 --set "node.sampler.seedUpdateTimes={0}" --set sim.seedDerivation=scrambled
   ```
+
+  The thesis configs keep the thesis-era seed derivation (seed + simulation ID) so that they reproduce the thesis. With it, the first draw of every simulation's own stream is nearly the same, because the first output of `java.util.Random` barely moves with its seed. `sim.seedDerivation=scrambled` removes that. The independent variant measured above used the legacy derivation; how much that shared first draw affects its numbers was not measured.
 
   A 30-simulation base run takes 1.5 to 2 minutes on 6 cores with the current engine.
 

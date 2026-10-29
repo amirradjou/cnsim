@@ -52,7 +52,7 @@ All settings are listed in [docs/configuration.md](docs/configuration.md); [docs
 |---|---|
 | Selfish mining vs Eyal and Sirer's revenue formula R(α, γ), with γ measured from the logs | Within ~0.005 up to α = 0.40 (0.487 vs 0.489); 0.025 below at 0.45; reproduces the ~1/3 profitability threshold |
 | Double-spend success vs the exact probability of the block race (dynamic programming over the attacker's rules) | Within the 95% intervals for q = 0.1 to 0.45 (0.347 ± 0.047 vs 0.344 over 400 runs at q = 0.40) |
-| Which side's branch survives a network partition vs the Poisson race ([examples/partitions](examples/partitions/README.md)) | Within the 95% intervals for 10% to 50% of the hash power cut off (0.092 [0.068, 0.125] vs 0.090 at 30%); the longer branch won all 1,893 untied races |
+| Which side's branch survives a network partition vs the Poisson race ([examples/partitions](examples/partitions/README.md)) | Within the 95% intervals for 10% to 50% of the hash power cut off (0.080 [0.057, 0.111] vs 0.090 at 30%); the longer branch won all 1,859 untied races |
 | Fork rate vs 1 − Σ s·e^(−(1−s)D/T) for a block delay D ([examples/forks](examples/forks/README.md)) | Within the 95% intervals for D/T = 0.01 to 0.05, 0.2 and 0.3; at 0.1 the prediction (8.66%) is just above [7.85, 8.64]; at larger D the formula overestimates, as expected at second order (1.1 points at 0.5) |
 | Mean block interval vs target (Litecoin and Bitcoin Cash presets, 200 simulations each) | 150.2 s for 150 s; 605 s for 600 s |
 | Block counts over those 200 simulations | Poisson-consistent (variance/mean 1.10 and 1.09, ± 0.10) |

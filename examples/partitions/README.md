@@ -33,13 +33,13 @@ Measured (400 simulations per row, `partition_sweep.sh`):
 
 | Side A | p | A's branch won (95% CI) | Closed form | Longer branch won | Orphaned blocks / sim (expected) |
 |---|---|---|---|---|---|
-| `{1}` | 0.1 | 0.000 [0.000, 0.010] | 0.002 | 399 / 399 | 1.03 (1.00) |
-| `{1,2}` | 0.2 | 0.020 [0.010, 0.039] | 0.019 | 392 / 392 | 2.06 (1.98) |
-| `{1,2,3}` | 0.3 | 0.092 [0.068, 0.125] | 0.090 | 387 / 387 | 2.95 (2.86) |
-| `{1,2,3,4}` | 0.4 | 0.240 [0.201, 0.284] | 0.255 | 359 / 359 | 3.64 (3.51) |
-| `{1,2,3,4,5}` | 0.5 | 0.490 [0.441, 0.539] | 0.500 | 356 / 356 | 3.87 (3.75) |
+| `{1}` | 0.1 | 0.000 [0.000, 0.010] | 0.002 | 400 / 400 | 0.97 (1.00) |
+| `{1,2}` | 0.2 | 0.015 [0.007, 0.032] | 0.019 | 385 / 385 | 1.91 (1.98) |
+| `{1,2,3}` | 0.3 | 0.080 [0.057, 0.111] | 0.090 | 377 / 377 | 2.85 (2.86) |
+| `{1,2,3,4}` | 0.4 | 0.223 [0.184, 0.266] | 0.255 | 355 / 355 | 3.50 (3.51) |
+| `{1,2,3,4,5}` | 0.5 | 0.485 [0.436, 0.534] | 0.500 | 342 / 342 | 3.73 (3.75) |
 
-The closed form lies inside every interval. In all 1,893 simulations where the two branches differed in length, the longer one won. The other 107 were ties, decided by the next block: side A won 47 of them, against 44.0 expected from its share. Blocks mined per side are within 4% of pL/T and (1−p)L/T. All rows use the same seeds, so they share their mining randomness: the total is 10.25 blocks per window in each row, against 10 expected. That shared excess also explains why orphaned blocks run slightly above expectation.
+The closed form lies inside every interval. In all 1,859 simulations where the two branches differed in length, the longer one won. The other 141 were ties, decided by the next block: side A won 59 of them, against 56.9 expected from its share. Blocks mined per side are within 5% of pL/T and (1−p)L/T. All rows use the same seeds, so they share their mining randomness: the total is 9.92 blocks per window in each row, against 10 expected. That shared shortfall also explains why orphaned blocks run slightly below expectation.
 
 ## Finality across a partition
 
@@ -49,7 +49,7 @@ The config tracks belief in three transactions: transaction 150, which arrives a
 |---|---|---|
 | 150 | 25 min, before the partition | 46 s |
 | 200 | 34 min, during it | 443 s |
-| 220 | 37 min, during it | 204 s |
+| 220 | 37 min, during it | 220 s |
 
 A transaction that arrives during a partition reaches only one side, so it cannot be believed by 90% of the nodes before the partition heals at 40 minutes. Its time to finality is the remaining partition time plus the usual delay.
 
